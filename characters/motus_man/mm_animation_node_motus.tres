@@ -1,0 +1,4 @@
+[gd_resource type="MMAnimationNode" format=3 uid="uid://cagf0dgr56uu5"]
+
+[resource]
+library = &"motus_motion_library"

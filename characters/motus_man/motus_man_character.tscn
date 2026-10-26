@@ -1,0 +1,45 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="PackedScene" path="res://characters/motus_man/MotusMan_v55.fbx" id="1_motus"]
+[ext_resource type="MMAnimationNode" path="res://characters/motus_man/mm_animation_node_motus.tres" id="2_node"]
+[ext_resource type="MMAnimationLibrary" path="res://characters/motus_man/motus_motion_library.tres" id="3_lib"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_motus"]
+radius = 0.35
+height = 1.8
+
+[sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_motus"]
+nodes/MMAnimationNode/node = ExtResource("2_node")
+nodes/MMAnimationNode/position = Vector2(0, 140)
+node_connections = [&"output", 0, &"MMAnimationNode"]
+
+[node name="MotusMan" type="MMCharacter" node_paths=PackedStringArray("skeleton", "animation_tree")]
+skeleton = NodePath("MotusMan_v55/Skeleton3D")
+animation_tree = NodePath("MotusMan_v55/AnimationTree")
+history_delta_time = 0.1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_motus")
+
+[node name="RootMotionView" type="RootMotionView" parent="."]
+animation_path = NodePath("../MotusMan_v55/AnimationTree")
+
+[node name="MotusMan_v55" parent="." instance=ExtResource("1_motus")]
+
+[node name="AnimationPlayer" parent="MotusMan_v55" index="9"]
+root_motion_track = NodePath("Skeleton3D:Root")
+root_motion_local = false
+libraries = {
+&"motus_motion_library": ExtResource("3_lib")
+}
+
+[node name="AnimationTree" type="AnimationTree" parent="MotusMan_v55"]
+root_motion_track = NodePath("Skeleton3D:Root")
+root_motion_local = false
+tree_root = SubResource("AnimationNodeBlendTree_motus")
+advance_expression_base_node = NodePath("..")
+anim_player = NodePath("../AnimationPlayer")
+parameters/MMAnimationNode/motion_matching_input = Object(MMQueryInput,"script":null)
+
+[editable path="MotusMan_v55"]
