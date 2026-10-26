@@ -1,3 +1,5 @@
+## DEPRECATED: retarget ini salah (rest_q * q) dan membuat pose terpelintir.
+## Gunakan tools/retarget_motorica_to_motus.gd sebagai gantinya.
 extends SceneTree
 
 func _initialize():
