@@ -6,7 +6,6 @@ extends SceneTree
 ## Lalu render dengan:  python3 clipkit/preview.py clipkit/preview/<nama>.pose.json
 
 const ClipLib := preload("res://clipkit/clip_lib.gd")
-const OUT_DIR := "res://clipkit/preview/"
 
 func _initialize() -> void:
 	var targets: Array = []
@@ -14,16 +13,21 @@ func _initialize() -> void:
 		if not a.begins_with("--"):
 			targets.append(a)
 	if targets.is_empty():
-		targets.append("res://clipkit/out/")
-	var rig := ClipLib.load_rig()
-	var sk := ClipLib.load_skeleton(rig)
+		targets.append(str(ClipLib.rig_from_args(OS.get_cmdline_user_args())["out_dir"]))
+	var rs := ClipLib.rig_from_args(OS.get_cmdline_user_args())
+	if (rs["rig"] as Dictionary).is_empty() or rs["sk"] == null:
+		quit(2)
+		return
+	var rig: Dictionary = rs["rig"]
+	var sk: Skeleton3D = rs["sk"]
+	var OUT_DIR: String = str(rig.get("preview_dir", "res://clipkit/preview/"))
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
 
 	var names: Array = rig["animated_bones"]
 	var idx: Array = []
 	var parents: Array = []
 	for n in names:
-		idx.append(sk.find_bone(n))
+		idx.append(ClipLib.find_bone(sk, rig, n))
 	for i in idx:
 		var p := sk.get_bone_parent(i)
 		parents.append(idx.find(p))  # -1 jika parent tidak ikut digambar

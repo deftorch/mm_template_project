@@ -1,0 +1,33 @@
+{
+ "name": "VRM_humanoid",
+ "extends": "res://clipkit/rig_motus_man.json",
+ "skeleton_scene": "res://animation/three-vrm-girl.vrm",
+ "path_prefix": "%GeneralSkeleton",
+ "root_bone": "Root",
+ "out_dir": "res://clipkit/out/vrm/",
+ "preview_dir": "res://clipkit/preview/vrm/",
+ "frame": "model: +X kiri karakter, +Y atas, +Z depan (VRM 0.x dan 1.0 hasil impor addon V-Sekai; diverifikasi oleh tests/test_clip_rig.gd -- --rig=vrm)",
+ "pos_scale": "auto",
+ "ref_hips_height": 0.9675,
+ "optional_bones": [
+  "UpperChest"
+ ],
+ "bone_alias": {
+  "Spine1": "Chest",
+  "Spine2": [
+   "UpperChest",
+   "Chest"
+  ],
+  "LeftArm": "LeftUpperArm",
+  "LeftForeArm": "LeftLowerArm",
+  "RightArm": "RightUpperArm",
+  "RightForeArm": "RightLowerArm",
+  "LeftUpLeg": "LeftUpperLeg",
+  "LeftLeg": "LeftLowerLeg",
+  "RightUpLeg": "RightUpperLeg",
+  "RightLeg": "RightLowerLeg",
+  "LeftToeBase": "LeftToes",
+  "RightToeBase": "RightToes"
+ },
+ "notes": "Rig turunan: channel/aim diwarisi dari rig_motus_man.json (nama kanonik), hanya nama bone, path track, skala posisi, dan direktori keluaran yang berbeda. Spine2 jatuh ke Chest jika model tidak punya UpperChest (VRM 1.0: upperChest opsional)."
+}

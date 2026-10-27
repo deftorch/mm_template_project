@@ -34,6 +34,7 @@
  "floor": {
   "penetration_fail_m": 0.04,
   "contact_height_m": 0.03,
+  "contact_max_vertical_ms": 1.0,
   "slide_warn_ms": 0.25
  }
 }

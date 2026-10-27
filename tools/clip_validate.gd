@@ -4,6 +4,8 @@ extends SceneTree
 ##   godot --headless --path . -s tools/clip_validate.gd                          # semua di clipkit/out/
 ##   godot --headless --path . -s tools/clip_validate.gd -- <file.res|dir> ...    # target lain
 ##   godot --headless --path . -s tools/clip_validate.gd -- --style=realistic     # realistic|stylized|exaggerated
+##   godot --headless --path . -s tools/clip_validate.gd -- --rig=vrm             # rig/karakter lain (default: out_dir rig itu)
+##   ... -- --rig=vrm --skeleton=res://testdata/vrm1/X.vrm                         # skeleton lain untuk rig yang sama
 ##   godot --headless --path . -s tools/clip_validate.gd -- --quiet               # hanya WARN/FAIL
 ##
 ## Exit code 1 jika ada FAIL. Batas ada di clipkit/limits.json.
@@ -31,20 +33,24 @@ func _initialize() -> void:
 			quiet = true
 		elif not a.begins_with("--"):
 			targets.append(a)
-	if targets.is_empty():
-		targets.append("res://clipkit/out/")
 	limits = ClipLib.read_json("res://clipkit/limits.json")
 	if not limits["styles"].has(style):
 		printerr("Style tidak dikenal: ", style)
 		quit(2)
 		return
-	rig = ClipLib.load_rig()
-	sk = ClipLib.load_skeleton(rig)
+	var rs := ClipLib.rig_from_args(OS.get_cmdline_user_args())
+	if (rs["rig"] as Dictionary).is_empty() or rs["sk"] == null:
+		quit(2)
+		return
+	rig = rs["rig"]
+	sk = rs["sk"]
+	if targets.is_empty():
+		targets.append(str(rs["out_dir"]))
 
 	var rest_toe_y := INF
-	var grest := _rest_globals()
+	var grest := ClipLib.rest_globals(sk)
 	for tn in ["LeftToeBase", "RightToeBase"]:
-		rest_toe_y = minf(rest_toe_y, (grest[sk.find_bone(tn)] as Transform3D).origin.y)
+		rest_toe_y = minf(rest_toe_y, (grest[_bi(tn)] as Transform3D).origin.y)
 	floor_y = rest_toe_y
 
 	var files: Array = []
@@ -71,13 +77,9 @@ func _initialize() -> void:
 	quit(1 if total_fail > 0 else 0)
 
 
-func _rest_globals() -> Array:
-	var g: Array = []
-	for i in sk.get_bone_count():
-		var p := sk.get_bone_parent(i)
-		var l := sk.get_bone_rest(i)
-		g.append(l if p < 0 else (g[p] as Transform3D) * l)
-	return g
+## Index bone dari nama kanonik (lewat alias rig).
+func _bi(canon: String) -> int:
+	return ClipLib.find_bone(sk, rig, canon)
 
 
 func _validate(path: String, anim: Animation) -> void:
@@ -97,7 +99,7 @@ func _validate(path: String, anim: Animation) -> void:
 		poses.append(ClipLib.anim_pose(sk, anim, tracks, minf(f / fps, anim.length)))
 	var ix := {}
 	for bn in ["Hips", "Spine2", "Neck", "Head", "LeftUpLeg", "LeftLeg", "LeftFoot", "LeftToeBase", "RightUpLeg", "RightLeg", "RightFoot", "RightToeBase", "LeftArm", "LeftForeArm", "LeftHand", "RightArm", "RightForeArm", "RightHand"]:
-		ix[bn] = sk.find_bone(bn)
+		ix[bn] = _bi(bn)
 
 	# 1. kecepatan & percepatan sudut per track rotasi
 	var max_speed := 0.0
@@ -161,17 +163,17 @@ func _validate(path: String, anim: Animation) -> void:
 	for pose in poses:
 		var lax: Vector3 = ((pose[ix["LeftUpLeg"]] as Transform3D).origin - (pose[ix["RightUpLeg"]] as Transform3D).origin).normalized()
 		for side in ["Left", "Right"]:
-			var hip: Vector3 = (pose[sk.find_bone(side + "UpLeg")] as Transform3D).origin
-			var knee: Vector3 = (pose[sk.find_bone(side + "Leg")] as Transform3D).origin
-			var foot: Vector3 = (pose[sk.find_bone(side + "Foot")] as Transform3D).origin
+			var hip: Vector3 = (pose[_bi(side + "UpLeg")] as Transform3D).origin
+			var knee: Vector3 = (pose[_bi(side + "Leg")] as Transform3D).origin
+			var foot: Vector3 = (pose[_bi(side + "Foot")] as Transform3D).origin
 			var th := (knee - hip).normalized()
 			var sh := (foot - knee).normalized()
 			var flex := rad_to_deg(atan2(th.cross(sh).dot(lax), th.dot(sh)))
 			knee_min = minf(knee_min, flex)
 			knee_max = maxf(knee_max, flex)
-			var sh_o: Vector3 = (pose[sk.find_bone(side + "Arm")] as Transform3D).origin
-			var el_o: Vector3 = (pose[sk.find_bone(side + "ForeArm")] as Transform3D).origin
-			var wr_o: Vector3 = (pose[sk.find_bone(side + "Hand")] as Transform3D).origin
+			var sh_o: Vector3 = (pose[_bi(side + "Arm")] as Transform3D).origin
+			var el_o: Vector3 = (pose[_bi(side + "ForeArm")] as Transform3D).origin
+			var wr_o: Vector3 = (pose[_bi(side + "Hand")] as Transform3D).origin
 			var ua := (el_o - sh_o).normalized()
 			var fa := (wr_o - el_o).normalized()
 			elbow_max = maxf(elbow_max, rad_to_deg(acos(clampf(ua.dot(fa), -1.0, 1.0))))
@@ -195,7 +197,7 @@ func _validate(path: String, anim: Animation) -> void:
 	var contact_frames := 0
 	for f in range(poses.size()):
 		for side in ["Left", "Right"]:
-			var ti := sk.find_bone(side + "ToeBase")
+			var ti := _bi(side + "ToeBase")
 			var tp: Vector3 = (poses[f][ti] as Transform3D).origin
 			min_toe = minf(min_toe, tp.y)
 			var in_c: bool = (tp.y - floor_y) < float(fl["contact_height_m"])
@@ -203,7 +205,11 @@ func _validate(path: String, anim: Animation) -> void:
 				contact_frames += 1
 			if f + 1 < poses.size() and in_c:
 				var tn: Vector3 = (poses[f + 1][ti] as Transform3D).origin
-				if tn.y - floor_y < fl["contact_height_m"]:
+				# tumpuan = kedua frame rendah DAN kaki tidak sedang naik/turun cepat; tanpa syarat kedua,
+				# frame lepas landas/mendarat ikut terhitung "menggeser" dan hasilnya berbalik hanya karena
+				# beda geometri kaki beberapa mm antar skeleton (terlihat pada dodge VRM 0.x vs 1.0).
+				var vy := absf(tn.y - tp.y) * fps
+				if tn.y - floor_y < fl["contact_height_m"] and vy <= float(fl.get("contact_max_vertical_ms", INF)):
 					slide.append(Vector2(tn.x - tp.x, tn.z - tp.z).length() * fps)
 	var pen := floor_y - min_toe
 	if vmeta.get("check_floor", true):
@@ -224,7 +230,7 @@ func _validate(path: String, anim: Animation) -> void:
 
 	# 5. root motion & klaim
 	var claims: Dictionary = anim.get_meta("claims", {})
-	var root_tr: int = tracks.get(sk.find_bone("Root"), {}).get("pos", -1)
+	var root_tr: int = tracks.get(sk.find_bone(str(rig.get("root_bone", "Root"))), {}).get("pos", -1)
 	var dist := 0.0
 	if root_tr >= 0:
 		var r0: Vector3 = anim.position_track_interpolate(root_tr, 0.0)

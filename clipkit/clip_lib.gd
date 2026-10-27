@@ -6,7 +6,7 @@ extends RefCounted
 ##   - membuat Animation Godot dari klip (build_animation),
 ##   - membaca pose dunia dari Animation apa pun (anim_pose) untuk validasi.
 ##
-## Konvensi frame model MotusMan: +X = kiri karakter, +Y = atas, +Z = depan.
+## Konvensi frame model (MotusMan dan VRM 0.x/1.0 hasil impor addon): +X = kiri karakter, +Y = atas, +Z = depan.
 ## Semua sumbu channel didefinisikan di frame model pada pose rest (T-pose) dan "dibawa"
 ## oleh rotasi parent (carry). Jadi hasil tidak bergantung pada rotasi rest per-bone
 ## (kelas bug yang sama dengan retarget Motorica).
@@ -26,18 +26,139 @@ static func read_json(path: String) -> Variant:
 	return JSON.parse_string(f.get_as_text())
 
 
+## Muat rig. Rig boleh "extends" rig lain (path res://): semua field diwarisi, field yang ditulis
+## di rig turunan menimpa (dangkal, per field; "bone_alias" digabung per entri). Dengan begitu
+## definisi channel (sumbu, tanda, range) cukup ditulis sekali dan dipakai semua karakter.
 static func load_rig(path: String = RIG_PATH) -> Dictionary:
 	var rig = read_json(path)
 	if not (rig is Dictionary):
 		push_error("Rig tidak terbaca: " + path)
 		return {}
+	if rig.has("extends"):
+		var base := load_rig(str(rig["extends"]))
+		if base.is_empty():
+			return {}
+		var merged: Dictionary = base.duplicate(true)
+		for k in rig:
+			if k == "extends":
+				continue
+			if k == "bone_alias" and merged.has("bone_alias"):
+				for a in rig[k]:
+					merged["bone_alias"][a] = rig[k][a]
+			else:
+				merged[k] = rig[k]
+		rig = merged
 	return rig
 
 
-static func load_skeleton(rig: Dictionary) -> Skeleton3D:
-	var scene := load(rig["skeleton_scene"]) as PackedScene
+## Path rig dari nama pendek: "motus" -> rig_motus_man.json, "vrm" -> rig_vrm.json, atau path/.json langsung.
+static func rig_path_for(name: String) -> String:
+	if name == "" or name == "motus":
+		return RIG_PATH
+	if name.contains("/") or name.ends_with(".json"):
+		return name
+	return "res://clipkit/rig_%s.json" % name
+
+
+## Baca --rig=<nama|path> dan --skeleton=<res://scene> dari argumen. Return
+## {"rig": Dictionary, "sk": Skeleton3D, "out_dir": String}; "rig" kosong jika gagal.
+static func rig_from_args(args: PackedStringArray) -> Dictionary:
+	var rig_name := ""
+	var skel := ""
+	for a in args:
+		if a.begins_with("--rig="):
+			rig_name = a.substr(6)
+		elif a.begins_with("--skeleton="):
+			skel = a.substr(11)
+	var rig := load_rig(rig_path_for(rig_name))
+	if rig.is_empty():
+		return {"rig": {}, "sk": null, "out_dir": ""}
+	var sk := load_skeleton(rig, skel)
+	return {"rig": rig, "sk": sk, "out_dir": str(rig.get("out_dir", "res://clipkit/out/"))}
+
+
+## scene_override: path skeleton lain untuk rig yang sama (mis. VRM 0.x vs VRM 1.0).
+static func load_skeleton(rig: Dictionary, scene_override: String = "") -> Skeleton3D:
+	var path: String = scene_override if scene_override != "" else str(rig["skeleton_scene"])
+	var scene := load(path) as PackedScene
+	if scene == null:
+		push_error("Skeleton scene tidak bisa dimuat: " + path)
+		return null
 	var inst := scene.instantiate()
 	return inst.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
+
+
+# ----------------------------------------------------------------------------------------
+# Nama bone kanonik, alias per rig, dan urutan bone
+# ----------------------------------------------------------------------------------------
+# Klip, channel, dan alat memakai nama KANONIK (= penamaan MotusMan/Mixamo: Spine1, LeftArm,
+# LeftUpLeg, LeftToeBase, ...). Rig karakter lain menerjemahkannya lewat "bone_alias":
+#   "bone_alias": {"Spine1": "Chest", "Spine2": ["UpperChest", "Chest"], ...}
+# Nilai berupa string atau daftar kandidat (yang pertama ada di skeleton dipakai).
+
+static var _order_cache := {}
+
+
+## Index bone untuk nama kanonik; -1 jika tidak ada di skeleton.
+static func find_bone(sk: Skeleton3D, rig: Dictionary, canon: String) -> int:
+	var al: Dictionary = rig.get("bone_alias", {})
+	if al.has(canon):
+		var cands: Array = al[canon] if al[canon] is Array else [al[canon]]
+		for c in cands:
+			var i := sk.find_bone(str(c))
+			if i >= 0:
+				return i
+		return -1
+	return sk.find_bone(canon)
+
+
+## Nama bone sebenarnya di skeleton untuk nama kanonik ("" jika tidak ada).
+static func actual_name(sk: Skeleton3D, rig: Dictionary, canon: String) -> String:
+	var i := find_bone(sk, rig, canon)
+	return sk.get_bone_name(i) if i >= 0 else ""
+
+
+## Kebalikannya: nama kanonik untuk nama bone sebenarnya (nama tanpa alias dikembalikan apa adanya).
+static func canon_name(sk: Skeleton3D, rig: Dictionary, actual: String) -> String:
+	var al: Dictionary = rig.get("bone_alias", {})
+	for canon in al:
+		if actual_name(sk, rig, str(canon)) == actual:
+			return str(canon)
+	return actual
+
+
+## Urutan bone parent-dulu (topologis). Skeleton VRM hasil impor TIDAK berurutan parent-dulu
+## (parent bisa punya index lebih besar dari anaknya), jadi loop `for i in n` tidak aman.
+static func bone_order(sk: Skeleton3D) -> Array:
+	var key := sk.get_instance_id()
+	if _order_cache.has(key) and (_order_cache[key] as Array).size() == sk.get_bone_count():
+		return _order_cache[key]
+	var n := sk.get_bone_count()
+	var order: Array = []
+	var done := PackedByteArray()
+	done.resize(n)
+	var guard := 0
+	while order.size() < n and guard <= n:
+		guard += 1
+		for i in n:
+			if done[i] == 0:
+				var p := sk.get_bone_parent(i)
+				if p < 0 or done[p] == 1:
+					done[i] = 1
+					order.append(i)
+	_order_cache[key] = order
+	return order
+
+
+## Transform global rest tiap bone (aman untuk urutan bone sembarang).
+static func rest_globals(sk: Skeleton3D) -> Array:
+	var g: Array = []
+	g.resize(sk.get_bone_count())
+	for i in bone_order(sk):
+		var p := sk.get_bone_parent(i)
+		var l := sk.get_bone_rest(i)
+		g[i] = l if p < 0 else (g[p] as Transform3D) * l
+	return g
 
 
 # ----------------------------------------------------------------------------------------
@@ -91,18 +212,25 @@ static func sample_keys(keys: Array, t: float) -> float:
 
 static func make_ctx(sk: Skeleton3D, rig: Dictionary) -> Dictionary:
 	var n := sk.get_bone_count()
+	var order := bone_order(sk)
 	var rest_q: Array = []
 	var grest_q: Array = []
 	var grest_t: Array = []
-	for i in n:
+	rest_q.resize(n)
+	grest_q.resize(n)
+	grest_t.resize(n)
+	for i in order:
 		var p := sk.get_bone_parent(i)
-		if p >= i:
-			push_error("Urutan bone tidak parent-dulu: " + sk.get_bone_name(i))
 		var l := sk.get_bone_rest(i)
 		var rq := l.basis.get_rotation_quaternion()
-		rest_q.append(rq)
-		grest_q.append(rq if p < 0 else (grest_q[p] as Quaternion) * rq)
-		grest_t.append(l if p < 0 else (grest_t[p] as Transform3D) * l)
+		rest_q[i] = rq
+		grest_q[i] = rq if p < 0 else (grest_q[p] as Quaternion) * rq
+		grest_t[i] = l if p < 0 else (grest_t[p] as Transform3D) * l
+
+	var optional: Array = rig.get("optional_bones", [])
+	var hips_i := find_bone(sk, rig, "Hips")
+	if hips_i < 0:
+		push_error("Bone Hips tidak ditemukan di skeleton")
 
 	# channel axis/pos -> daftar target
 	var ops := {}  # bone idx -> Array[{kind, ...}]
@@ -111,26 +239,48 @@ static func make_ctx(sk: Skeleton3D, rig: Dictionary) -> Dictionary:
 		var c: Dictionary = rig["channels"][cname]
 		if c["type"] == "axis":
 			var axis := Vector3(c["axis"][0], c["axis"][1], c["axis"][2]).normalized() * float(c["sign"])
+			# bone opsional yang tidak ada: bobotnya dibagikan ulang ke bone yang ada
+			var w_all := 0.0
+			var w_present := 0.0
 			for bname in c["bones"]:
-				var bi := sk.find_bone(bname)
+				w_all += float(c["bones"][bname])
+				if find_bone(sk, rig, bname) >= 0:
+					w_present += float(c["bones"][bname])
+			var renorm := w_all / w_present if w_present > 0.0 else 1.0
+			for bname in c["bones"]:
+				var bi := find_bone(sk, rig, bname)
 				if bi < 0:
-					push_error("Bone tidak ada: " + bname)
+					if not optional.has(bname):
+						push_error("Bone tidak ada: " + bname)
 					continue
 				if not ops.has(bi):
 					ops[bi] = []
-				ops[bi].append({"kind": "axis", "ch": cname, "axis": axis, "w": float(c["bones"][bname])})
+				ops[bi].append({"kind": "axis", "ch": cname, "axis": axis, "w": float(c["bones"][bname]) * renorm})
 		elif c["type"] == "pos":
-			pos_ops.append({"ch": cname, "axis": Vector3(c["axis"][0], c["axis"][1], c["axis"][2]), "bone": sk.find_bone(c["bone"])})
+			pos_ops.append({"ch": cname, "axis": Vector3(c["axis"][0], c["axis"][1], c["axis"][2]), "bone": find_bone(sk, rig, c["bone"])})
 	for aname in rig.get("aims", {}):
 		var a: Dictionary = rig["aims"][aname]
-		var bi := sk.find_bone(a["bone"])
-		var ci := sk.find_bone(a["child"])
+		var bi := find_bone(sk, rig, a["bone"])
+		var ci := find_bone(sk, rig, a["child"])
+		if bi < 0 or ci < 0:
+			push_error("Bone aim tidak ada: %s/%s" % [a["bone"], a["child"]])
+			continue
 		var rest_dir: Vector3 = ((grest_t[ci] as Transform3D).origin - (grest_t[bi] as Transform3D).origin).normalized()
 		if not ops.has(bi):
 			ops[bi] = []
 		ops[bi].append({"kind": "aim", "name": aname, "rest_dir": rest_dir,
 			"lateral": Vector3(a["lateral"][0], a["lateral"][1], a["lateral"][2])})
-	return {"n": n, "rest_q": rest_q, "grest_q": grest_q, "grest_t": grest_t, "ops": ops, "pos_ops": pos_ops}
+
+	# skala channel posisi (hip_x/y/z, meter) menurut tinggi panggul: "pos_scale": "auto" memakai
+	# tinggi panggul rest skeleton / "ref_hips_height" (tinggi MotusMan). Root motion tidak diskalakan
+	# karena dipakai sebagai klaim gameplay (jarak dodge dst.) dalam meter.
+	var pos_scale := 1.0
+	if str(rig.get("pos_scale", "")) == "auto":
+		pos_scale = (grest_t[hips_i] as Transform3D).origin.y / float(rig.get("ref_hips_height", 0.9675))
+	elif rig.has("pos_scale"):
+		pos_scale = float(rig["pos_scale"])
+	return {"n": n, "order": order, "hips_i": hips_i, "pos_scale": pos_scale,
+		"rest_q": rest_q, "grest_q": grest_q, "grest_t": grest_t, "ops": ops, "pos_ops": pos_ops}
 
 
 static func channel_default(rig: Dictionary, cname: String) -> float:
@@ -183,7 +333,7 @@ static func eval_pose(sk: Skeleton3D, rig: Dictionary, ctx: Dictionary, clip: Di
 	for cname in all_channel_names(rig):
 		cache[cname] = channel_value(rig, clip, cname, t)
 
-	for i in n:
+	for i in ctx["order"]:
 		var p := sk.get_bone_parent(i)
 		var gp: Quaternion = Quaternion.IDENTITY if p < 0 else gpose[p]
 		var gpr: Quaternion = Quaternion.IDENTITY if p < 0 else (ctx["grest_q"][p] as Quaternion)
@@ -209,10 +359,9 @@ static func eval_pose(sk: Skeleton3D, rig: Dictionary, ctx: Dictionary, clip: Di
 		rot[i] = local
 		gpose[i] = (gp * local).normalized()
 
-	var hips_i := sk.find_bone("Hips")
-	var hips_pos: Vector3 = sk.get_bone_rest(hips_i).origin
+	var hips_pos: Vector3 = sk.get_bone_rest(ctx["hips_i"]).origin
 	for po in ctx["pos_ops"]:
-		hips_pos += (po["axis"] as Vector3) * float(cache[po["ch"]])
+		hips_pos += (po["axis"] as Vector3) * float(cache[po["ch"]]) * float(ctx["pos_scale"])
 	return {"rot": rot, "hips_pos": hips_pos, "root_pos": root_motion(clip, t)}
 
 
@@ -246,14 +395,20 @@ static func build_animation(sk: Skeleton3D, rig: Dictionary, ctx: Dictionary, cl
 
 	var tracks := {}
 	for bname in rig["animated_bones"]:
-		var bi := sk.find_bone(bname)
+		var bi := find_bone(sk, rig, bname)
+		if bi < 0:
+			if not (rig.get("optional_bones", []) as Array).has(bname):
+				push_error("animated_bones: bone tidak ada: " + bname)
+			continue
+		if tracks.has(bi):
+			continue  # dua nama kanonik menunjuk bone yang sama (alias fallback); satu track cukup
 		var tr := out.add_track(Animation.TYPE_ROTATION_3D)
-		out.track_set_path(tr, NodePath("%s:%s" % [prefix, bname]))
+		out.track_set_path(tr, NodePath("%s:%s" % [prefix, sk.get_bone_name(bi)]))
 		tracks[bi] = tr
 	var hips_tr := out.add_track(Animation.TYPE_POSITION_3D)
-	out.track_set_path(hips_tr, NodePath("%s:Hips" % prefix))
+	out.track_set_path(hips_tr, NodePath("%s:%s" % [prefix, sk.get_bone_name(ctx["hips_i"])]))
 	var root_tr := out.add_track(Animation.TYPE_POSITION_3D)
-	out.track_set_path(root_tr, NodePath("%s:Root" % prefix))
+	out.track_set_path(root_tr, NodePath("%s:%s" % [prefix, str(rig.get("root_bone", "Root"))]))
 
 	var frames := int(ceil(dur * FPS))
 	for f in range(frames + 1):
@@ -359,7 +514,7 @@ static func anim_pose(sk: Skeleton3D, anim: Animation, tracks: Dictionary, t: fl
 	var n := sk.get_bone_count()
 	var g: Array = []
 	g.resize(n)
-	for i in n:
+	for i in bone_order(sk):
 		var rest := sk.get_bone_rest(i)
 		var q := rest.basis.get_rotation_quaternion()
 		var o := rest.origin

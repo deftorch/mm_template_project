@@ -14,3 +14,6 @@ addons/debug_draw_3d/libs/~libdd3d.windows.editor.x86_64.dll
 ue/
 # bytecode Python (clipkit/*.py)
 __pycache__/
+
+# Model uji besar (VRM 1.0), ambil lewat tests/fetch_vrm1_sample.sh
+testdata/

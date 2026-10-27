@@ -4,12 +4,13 @@ extends SceneTree
 ##   godot --headless --path . -s tools/clip_build.gd                      # semua klip di clipkit/clips/
 ##   godot --headless --path . -s tools/clip_build.gd -- --only=dodge      # satu klip
 ##   godot --headless --path . -s tools/clip_build.gd -- --dir=res://x/    # direktori lain
+##   godot --headless --path . -s tools/clip_build.gd -- --rig=vrm         # rig lain (keluaran ke out_dir rig itu)
+##   ... -- --rig=vrm --skeleton=res://testdata/vrm1/X.vrm                 # skeleton lain untuk rig yang sama
 ##
-## Keluaran: res://clipkit/out/<nama>.res (bisa dimuat langsung ke AnimationLibrary).
+## Keluaran: <out_dir rig>/<nama>.res (MotusMan: res://clipkit/out/) (bisa dimuat langsung ke AnimationLibrary).
 ## Exit code 1 jika ada klip yang gagal dibangun.
 
 const ClipLib := preload("res://clipkit/clip_lib.gd")
-const OUT_DIR := "res://clipkit/out/"
 
 func _initialize() -> void:
 	var only := ""
@@ -19,8 +20,14 @@ func _initialize() -> void:
 			only = a.substr(7)
 		elif a.begins_with("--dir="):
 			dir = a.substr(6)
-	var rig := ClipLib.load_rig()
-	var sk := ClipLib.load_skeleton(rig)
+	var rs := ClipLib.rig_from_args(OS.get_cmdline_user_args())
+	if (rs["rig"] as Dictionary).is_empty() or rs["sk"] == null:
+		quit(2)
+		return
+	var rig: Dictionary = rs["rig"]
+	var sk: Skeleton3D = rs["sk"]
+	var OUT_DIR: String = rs["out_dir"]
+	print("Rig: %s | skeleton: %d bone | keluaran: %s" % [rig.get("name", "?"), sk.get_bone_count(), OUT_DIR])
 	var ctx := ClipLib.make_ctx(sk, rig)
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
 

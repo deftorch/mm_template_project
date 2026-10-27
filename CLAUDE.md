@@ -40,6 +40,9 @@ Penilaian "enak dilihat" tetap oleh manusia. Rancangan lengkap: `docs/design-doc
 | `clipkit/clip_release.py` | CLI `check` / `release` / `list` |
 | `clipkit/clip_diff.py` | Diff numerik dua versi klip (jendela, event, move, klaim, selisih kurva per channel) |
 | `clipkit/history/<klip>/v<N>.json` | Snapshot tidak berubah per versi yang dirilis (dodge v2, slash v2, parry v3) |
+| `clipkit/rig_vrm.json` | Rig VRM (0.x dan 1.0) sebagai turunan rig MotusMan: `extends`, `bone_alias`, `%GeneralSkeleton`, `pos_scale: auto`, `optional_bones`, `out_dir: clipkit/out/vrm/` |
+| `tests/test_clip_portability.gd` | Uji lintas skeleton (MotusMan, VRM 0.x, VRM 1.0): urutan bone, resolve path track lewat `AnimationPlayer` nyata, bone opsional, dan `out/` sinkron dengan JSON (sudah diuji sensitif: gagal jika JSON diubah tanpa rebuild) |
+| `tests/fetch_vrm1_sample.sh` | Mengunduh model uji VRM 1.0 ke `testdata/vrm1/` (tidak di-commit; `.gitignore`) |
 | `tests/test_clip_history.py` | 28 uji bagian Python versioning (`python3 tests/test_clip_history.py`) |
 
 ## 4. Cara menjalankan (lingkungan sandbox Linux)
@@ -61,7 +64,10 @@ $G -s tools/clip_build.gd                          # clips/*.json -> clipkit/out
 $G -s tools/clip_validate.gd                       # validasi (-- --style=realistic --quiet, atau path .res lain)
 $G -s tools/clip_export_pose.gd                    # out/*.res -> clipkit/preview/*.pose.json
 python3 clipkit/preview.py clipkit/preview/slash.pose.json --frames 10   # -> .contact.png (butuh matplotlib, numpy)
-$G -s tests/test_clip_rig.gd                       # uji tanda channel
+$G -s tests/test_clip_rig.gd                       # uji tanda channel (tambah -- --rig=vrm [--skeleton=res://...vrm])
+$G -s tests/test_clip_portability.gd               # uji lintas skeleton + out/ sinkron
+$G -s tools/clip_build.gd -- --rig=vrm             # rig lain -> clipkit/out/vrm/ (juga validate/export_pose/render_sheet.py --rig vrm)
+sh tests/fetch_vrm1_sample.sh && $G --import       # model uji VRM 1.0 (sekali)
 python3 clipkit/clip_release.py check              # versi + changelog + snapshot (tanpa Godot)
 python3 clipkit/clip_diff.py parry@3 parry         # diff snapshot vs klip kerja (tanpa Godot)
 python3 tests/test_clip_history.py                 # uji Python versioning
@@ -90,7 +96,17 @@ Kamera: `+Z` = depan karakter; `--yaw=0` kamera di depan, `90` dari sisi +X (kir
 - Tanda channel (diverifikasi): `lean`+ = membungkuk ke depan; `twist`+ = dada ke kiri (bahu kanan maju); `legX_swing`+ = paha ke depan; `kneeX`+ = menekuk; `footX_pitch`+ = ujung kaki turun; `elbowX`+ = siku menekuk (tangan maju saat lengan tergantung); arm `azim` 0 = ke samping, 90 = ke depan.
 - Kaki menapak datar saat tumpuan: `footX_pitch = swing − knee`. Penurunan panggul untuk tumpuan konsisten: `d = L1(1−cos a) + L2(1−cos(k−a))`, posisi kaki di depan panggul `L1 sin a − L2 sin(k−a)`.
 
+### Fakta terverifikasi tentang VRM (addon V-Sekai, Godot 4.6; jangan ditebak ulang)
+
+- Repo hanya berisi VRM **0.x** (`animation/three-vrm-girl.vrm`, UniVRM 0.55). VRM **1.0** diuji dengan `VRM1_Constraint_Twist_Sample.vrm` (pixiv/three-vrm; `specVersion 1.0`, 54 humanoid bone, 14 node constraint).
+- Keduanya diimpor addon sebagai `Root_/GeneralSkeleton` (161 / 167 bone), dengan bone `Root` di atas `Hips`; path track animasi `%GeneralSkeleton:<Bone>` (sama dengan animasi VRM bawaan repo).
+- **Urutan bone BUKAN parent-dulu** pada kedua versi (parent bisa ber-index lebih besar). Loop `for i in n` untuk FK salah; pakai `ClipLib.bone_order()`.
+- Nama bone: `Hips Spine Chest UpperChest Neck Head LeftShoulder LeftUpperArm LeftLowerArm LeftHand LeftUpperLeg LeftLowerLeg LeftFoot LeftToes`. Frame +X kiri, +Y atas, +Z depan; T-pose. Ukuran: paha 0.353, betis 0.415 m; tinggi panggul 0.894 (0.x) / 0.908 (1.0); tinggi toe rest 0.024 / 0.038 m; jangkauan lengan 0.433 / 0.435 m.
+- 20 bone punya rest non-identity; desain "carry" tetap benar: 24/24 uji arah lulus di MotusMan, VRM 0.x, VRM 1.0 (ambang uji relatif terhadap ukuran tubuh, bukan meter MotusMan).
+
 ## 6. Temuan penting dan keputusan desain
+
+- **Portabilitas VRM (sesi ini):** refaktor `clip_lib.gd` tidak mengubah keluaran MotusMan (ketiga `out/*.res` identik bit-per-bit, laporan validator identik). Validator foot sliding kini juga mensyaratkan kaki tidak sedang naik/turun cepat (`contact_max_vertical_ms` di `limits.json`); tanpa itu hasil dodge berbalik antara VRM 0.x dan 1.0 hanya karena toe berbeda ~1 cm di sekitar ambang kontak 0.03 m (frame lepas landas, root meluncur 6 m/s ikut terhitung). Angka MotusMan tidak berubah.
 
 - Channel lengan **tidak** memakai rotasi sumbu bertumpuk (gimbal: lengan tergantung tidak bisa diayun maju lewat sumbu Y). Dipakai parametrisasi arah (aim: elev/azim) + `roll`; siku memakai sumbu yang dibawa lengan.
 - Validator menemukan masalah nyata pada klip sendiri (tangan `parry` 3107 °/s, `slash` menembus lantai 4.9 cm). Contact sheet menemukan hal yang **tidak** ditangkap angka: kecepatan root `dodge` 21 m/s (teleport) dan `slash` yang hanya gerakan lengan. Metrik kecepatan root lalu ditambahkan ke validator. Pola kerja yang terbukti: ukur → lihat → perbaiki → ukur ulang.
@@ -111,7 +127,7 @@ Eksperimen `roll` lengan kanan (render mesh, t=0.24 s): roll 0 = lengan bawah me
 - Lantai didekati dari sendi `ToeBase`, bukan telapak. Foot sliding memakai ambang tinggi toe, jadi bisa terpengaruh ayunan kaki; perlakukan sebagai petunjuk.
 - Lengan memakai arah tanpa roll otomatis: siku bisa menekuk ke bidang yang janggal (mis. `parry`, lengan kanan melipat ke arah kepala). Atur `roll`.
 - Versioning: snapshot baru ada dari dodge v2, slash v2, parry v3 (v1 dan parry v2 hilang; changelog-nya hanya berisi apa yang tercatat di dokumen ini, ditandai "tidak tercatat"). Tanggal tidak dicatat di changelog karena tidak diketahui untuk versi lama. Easing di `clip_diff.py` dicocokkan dengan GDScript (13 easing x 101 titik, selisih maks 5e-16; 4459 sampel kurva klip nyata, selisih maks 5e-14), tetapi diff membandingkan data klip, bukan pose dunia hasil build.
-- Belum ada: rig ke karakter kedua (VRM), `bake` motion matching otomatis, key berbasis tujuan (IK), layer aditif, mirror, secondary motion, integrasi klip ke `AnimationLibrary`/`AnimationTree`, tes regresi/CI.
+- Belum ada: `bake` motion matching otomatis dari pipeline klip (ada `tools/bake_motus_library_editor.gd` untuk MotusMan), key berbasis tujuan (IK), layer aditif, mirror, secondary motion, integrasi klip ke `AnimationLibrary`/`AnimationTree`, tes regresi/CI.
 - Tidak ada klaim kualitas animasi. Jangan menulis bahwa gerakan "terlihat bagus" tanpa masukan visual manusia.
 
 ## 9. Langkah berikutnya yang disarankan (urutan)
@@ -120,7 +136,7 @@ Eksperimen `roll` lengan kanan (render mesh, t=0.24 s): roll 0 = lengan bawah me
 2. Perbaiki foot sliding (kaki bergeser saat tumpuan): key kaki berbasis IK dua-tulang atau tambah channel kompensasi `hip_x/z`.
 3. Rapikan pose `parry` (lengan kiri) dan beri `slash` makna ayunan yang jelas.
 4. Pasang klip ke `AnimationLibrary`/scene MotusMan agar bisa dipicu dari `player_controller.gd`; baca `metadata` jendela (`windows`, `events`) di gameplay.
-5. Rig ke karakter kedua (VRM) untuk menguji portabilitas (Tahap 4); lalu CLI satu perintah, `bake` motion matching otomatis, tes regresi (Tahap 5).
+5. (Rig VRM 0.x/1.0 sudah ada, lihat atas.) Berikutnya: CLI satu perintah, `bake` motion matching otomatis, tes regresi (Tahap 5).
 6. Validator fisika/kontak lanjutan, key berbasis IK, layer aditif, mirror.
 
 ## 10. Konvensi kerja
@@ -132,3 +148,12 @@ Eksperimen `roll` lengan kanan (render mesh, t=0.24 s): roll 0 = lengan bawah me
 - Setiap perubahan klip: naikkan `version` + tambah entri `changelog` (jika isi berubah) → `clip_release.py check` → build → validate (exit 0, tanpa FAIL) → export → preview → lihat gambar → `clip_release.py release <nama>` jika diterima.
 - `FORMAT_VERSION` ada di dua tempat (`clip_lib.gd` dan `clipver.py`); ubah keduanya bersamaan. Port easing di `clip_diff.py` harus tetap sama dengan `ClipLib.ease_fn`.
 - Jangan commit artefak sementara; `clipkit/out/` dan `clipkit/preview/` adalah hasil regenerasi.
+
+## 11. Pembaruan: dukungan VRM 0.x / 1.0 (Tahap 4)
+
+Selesai dan diuji: rig VRM turunan (`extends`), alias bone kanonik, urutan bone topologis, `pos_scale: auto`, bone opsional,
+`--rig`/`--skeleton` di build/validate/export/demo/render_sheet, tes portabilitas. Render mesh (Xvfb) dilihat untuk `dodge`
+di VRM 0.x dan `parry` di VRM 1.0: pose terbaca wajar. **Belum dinilai manusia di editor.**
+Masalah terbuka: pada model VRM 1.0 sample, lengan baju (bone constraint) tampak melebar saat render software, juga dengan
+animasi VRM bawaan repo; penyebab belum dibuktikan (lihat `clipkit/README.md`, Batasan). Demo di editor (Forward+) belum diuji
+untuk VRM; jalankan `scenes/clipkit_demo.tscn` dengan argumen `--rig=vrm` (mis. lewat `Project > Run Arguments` atau CLI `-- --rig=vrm`).

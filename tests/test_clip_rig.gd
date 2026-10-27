@@ -1,12 +1,16 @@
 extends SceneTree
-## Uji tanda/arah channel rig MotusMan secara numerik (tanpa mata).
+## Uji tanda/arah channel rig secara numerik (tanpa mata).
 ## Jalankan: godot --headless --path . -s tests/test_clip_rig.gd
+##           godot --headless --path . -s tests/test_clip_rig.gd -- --rig=vrm
+##           godot --headless --path . -s tests/test_clip_rig.gd -- --rig=vrm --skeleton=res://testdata/vrm1/<model>.vrm
+## Posisi bone dikunci dengan nama KANONIK (MotusMan), jadi isi uji sama untuk semua rig.
 const ClipLib := preload("res://clipkit/clip_lib.gd")
 
 var fails := 0
 var sk: Skeleton3D
 var rig: Dictionary
 var ctx: Dictionary
+var canon := {}  # nama bone sebenarnya -> nama kanonik
 
 func pose_pos(channels: Dictionary) -> Dictionary:
 	var clip := {"duration": 1.0, "channels": {}}
@@ -16,7 +20,7 @@ func pose_pos(channels: Dictionary) -> Dictionary:
 	var g := ClipLib.anim_pose(sk, anim, ClipLib.index_tracks(sk, anim), 0.0)
 	var d := {}
 	for i in sk.get_bone_count():
-		d[sk.get_bone_name(i)] = (g[i] as Transform3D).origin
+		d[canon[sk.get_bone_name(i)]] = (g[i] as Transform3D).origin
 	return d
 
 func check(name: String, ok: bool, detail: String) -> void:
@@ -25,10 +29,24 @@ func check(name: String, ok: bool, detail: String) -> void:
 		fails += 1
 
 func _initialize() -> void:
-	rig = ClipLib.load_rig()
-	sk = ClipLib.load_skeleton(rig)
+	var rs := ClipLib.rig_from_args(OS.get_cmdline_user_args())
+	if (rs["rig"] as Dictionary).is_empty() or rs["sk"] == null:
+		quit(2)
+		return
+	rig = rs["rig"]
+	sk = rs["sk"]
 	ctx = ClipLib.make_ctx(sk, rig)
+	for i in sk.get_bone_count():
+		var an := sk.get_bone_name(i)
+		canon[an] = ClipLib.canon_name(sk, rig, an)
+	print("Rig: %s | %d bone | skala posisi %.3f | urutan parent-dulu asli: %s" % [rig.get("name", "?"), sk.get_bone_count(), ctx["pos_scale"], str(range(sk.get_bone_count()).all(func(i): return sk.get_bone_parent(i) < i))])
 	var base := pose_pos({})
+	# ukuran tubuh untuk ambang relatif (rest = T-pose, lengan lurus)
+	var rg := ClipLib.rest_globals(sk)
+	var arm_reach: float = ((rg[ClipLib.find_bone(sk, rig, "LeftHand")] as Transform3D).origin - (rg[ClipLib.find_bone(sk, rig, "LeftArm")] as Transform3D).origin).length()
+	var half_shoulder: float = absf(base["LeftArm"].x - base["RightArm"].x) / 2.0
+	var ps: float = ctx["pos_scale"]
+	print("INFO ukuran: jangkauan lengan=%.3f m  setengah lebar bahu=%.3f m" % [arm_reach, half_shoulder])
 	var f := func(v: Vector3) -> String: return "(%.2f, %.2f, %.2f)" % [v.x, v.y, v.z]
 
 	# panjang tulang konstan (sanity FK)
@@ -51,7 +69,7 @@ func _initialize() -> void:
 	p = pose_pos({"side_lean": 20.0})
 	check("side_lean +20 -> kepala ke kanan karakter (-X)", p["Head"].x - base["Head"].x < -0.05, f.call(p["Head"] - base["Head"]))
 	p = pose_pos({"twist": 30.0})
-	check("twist +30 -> dada berputar ke kiri (bahu kanan maju, bahu kiri mundur)", p["RightArm"].z - base["RightArm"].z > 0.05 and p["LeftArm"].z - base["LeftArm"].z < -0.05, "L dz=%.2f R dz=%.2f" % [p["LeftArm"].z - base["LeftArm"].z, p["RightArm"].z - base["RightArm"].z])
+	check("twist +30 -> dada berputar ke kiri (bahu kanan maju, bahu kiri mundur)", p["RightArm"].z - base["RightArm"].z > 0.25 * half_shoulder and p["LeftArm"].z - base["LeftArm"].z < -0.25 * half_shoulder, "L dz=%.2f R dz=%.2f" % [p["LeftArm"].z - base["LeftArm"].z, p["RightArm"].z - base["RightArm"].z])
 	p = pose_pos({"legL_swing": 30.0})
 	check("legL_swing +30 -> kaki kiri maju (+Z)", p["LeftFoot"].z - base["LeftFoot"].z > 0.1, f.call(p["LeftFoot"] - base["LeftFoot"]))
 	p = pose_pos({"legR_swing": 30.0})
@@ -65,21 +83,21 @@ func _initialize() -> void:
 	p = pose_pos({"footL_pitch": 30.0})
 	check("footL_pitch +30 -> ujung kaki turun", p["LeftToeBase"].y < base["LeftToeBase"].y - 0.03, f.call(p["LeftToeBase"] - base["LeftToeBase"]))
 	p = pose_pos({"hip_y": 0.1, "hip_z": 0.2})
-	check("hip_y/hip_z -> panggul bergeser", absf(p["Hips"].y - base["Hips"].y - 0.1) < 1e-3 and absf(p["Hips"].z - base["Hips"].z - 0.2) < 1e-3, f.call(p["Hips"] - base["Hips"]))
+	check("hip_y/hip_z -> panggul bergeser", absf(p["Hips"].y - base["Hips"].y - 0.1 * ps) < 1e-3 and absf(p["Hips"].z - base["Hips"].z - 0.2 * ps) < 1e-3, f.call(p["Hips"] - base["Hips"]))
 	p = pose_pos({"head_yaw": 40.0})
 	check("head_yaw bergerak tanpa memindahkan Neck", (p["Neck"] - base["Neck"]).length() < 1e-3, "neck d=%.4f" % (p["Neck"] - base["Neck"]).length())
 
 	# lengan (aim)
 	p = pose_pos({"armL_elev": 0.0, "armL_azim": 0.0})
-	check("armL elev=0 azim=0 -> tangan lurus ke samping (+X)", p["LeftHand"].x - p["LeftArm"].x > 0.5 and absf(p["LeftHand"].y - p["LeftArm"].y) < 0.08, f.call(p["LeftHand"] - p["LeftArm"]))
+	check("armL elev=0 azim=0 -> tangan lurus ke samping (+X)", p["LeftHand"].x - p["LeftArm"].x > 0.85 * arm_reach and absf(p["LeftHand"].y - p["LeftArm"].y) < 0.08, f.call(p["LeftHand"] - p["LeftArm"]))
 	p = pose_pos({"armL_elev": 0.0, "armL_azim": 90.0})
-	check("armL elev=0 azim=90 -> tangan lurus ke depan (+Z)", p["LeftHand"].z - p["LeftArm"].z > 0.5, f.call(p["LeftHand"] - p["LeftArm"]))
+	check("armL elev=0 azim=90 -> tangan lurus ke depan (+Z)", p["LeftHand"].z - p["LeftArm"].z > 0.85 * arm_reach, f.call(p["LeftHand"] - p["LeftArm"]))
 	p = pose_pos({"armL_elev": 90.0})
-	check("armL elev=90 -> tangan di atas bahu", p["LeftHand"].y - p["LeftArm"].y > 0.5, f.call(p["LeftHand"] - p["LeftArm"]))
+	check("armL elev=90 -> tangan di atas bahu", p["LeftHand"].y - p["LeftArm"].y > 0.85 * arm_reach, f.call(p["LeftHand"] - p["LeftArm"]))
 	p = pose_pos({"armR_elev": 0.0})
-	check("armR elev=0 -> tangan kanan ke samping (-X)", p["RightHand"].x - p["RightArm"].x < -0.5, f.call(p["RightHand"] - p["RightArm"]))
+	check("armR elev=0 -> tangan kanan ke samping (-X)", p["RightHand"].x - p["RightArm"].x < -0.85 * arm_reach, f.call(p["RightHand"] - p["RightArm"]))
 	p = pose_pos({"armL_elev": 0.0, "armL_azim": 90.0, "armR_elev": 0.0, "armR_azim": 90.0})
-	check("armR elev=0 azim=90 -> tangan kanan ke depan (+Z)", p["RightHand"].z - p["RightArm"].z > 0.5, f.call(p["RightHand"] - p["RightArm"]))
+	check("armR elev=0 azim=90 -> tangan kanan ke depan (+Z)", p["RightHand"].z - p["RightArm"].z > 0.85 * arm_reach, f.call(p["RightHand"] - p["RightArm"]))
 
 	# siku: tangan menekuk ke depan saat lengan tergantung
 	var e0 := pose_pos({"elbowL": 0.0, "elbowR": 0.0})

@@ -1,4 +1,4 @@
-# clipkit: klip animasi berbasis teks untuk MotusMan
+# clipkit: klip animasi berbasis teks untuk MotusMan dan VRM (0.x / 1.0)
 
 Tahap 1 + 2 dari design doc: format klip JSON, generator ke `Animation` Godot, dan validator numerik.
 Diuji dengan Godot 4.6 headless. **Pose di `clips/` adalah placeholder** (angka diset untuk menguji pipeline,
@@ -13,7 +13,10 @@ godot --headless --path . -s tools/clip_validate.gd                 # validasi o
 godot --headless --path . -s tools/clip_validate.gd -- --style=realistic --quiet
 godot --headless --path . -s tools/clip_validate.gd -- res://characters/motus_man/animations/Idle_Loop.res
 godot --headless --path . -s tests/test_clip_rig.gd                 # uji arah/tanda channel rig
+godot --headless --path . -s tests/test_clip_portability.gd         # uji lintas skeleton + out/ sinkron dengan JSON
 ```
+Karakter lain: tambahkan `-- --rig=vrm` pada build/validate/export/uji (keluaran ke `clipkit/out/vrm/`), dan
+`--skeleton=res://...vrm` untuk model lain dengan rig yang sama (mis. VRM 1.0). Lihat bagian "Rig dan karakter".
 Validator juga bisa dipakai pada klip `.res` mana pun (mis. hasil retarget Motorica). Exit code 1 jika ada FAIL.
 Pertama kali di mesin baru jalankan `godot --headless --path . --import`.
 
@@ -84,6 +87,30 @@ Channel yang tidak diisi memakai default rig (lengan tergantung, siku 10°, lain
 Easing: linear, hold, inQuad, outQuad, inOutQuad, inCubic, outCubic, inOutCubic, inSine, outSine, inOutSine, outBack.
 Windows/events/claims disimpan sebagai metadata `Animation` (`get_meta("windows")` dst) agar bisa dibaca gameplay.
 
+## Rig dan karakter (MotusMan, VRM 0.x, VRM 1.0)
+
+Klip, channel, dan alat memakai nama bone **kanonik** (penamaan MotusMan/Mixamo: `Spine1`, `LeftArm`, `LeftUpLeg`,
+`LeftToeBase`). Rig lain menerjemahkannya lewat `bone_alias`. `rig_vrm.json` adalah rig turunan
+(`"extends": "res://clipkit/rig_motus_man.json"`): definisi channel (sumbu, tanda, range) diwarisi, hanya nama bone,
+path track, dan direktori keluaran yang berbeda. Satu klip JSON yang sama dibangun untuk karakter mana pun.
+
+| | MotusMan | VRM 0.x / 1.0 (addon V-Sekai) |
+|---|---|---|
+| rig | `rig_motus_man.json` | `rig_vrm.json` (`--rig=vrm`) |
+| skeleton | `Skeleton3D` (80 bone) | `%GeneralSkeleton` (161-167 bone) |
+| alias | (nama kanonik) | `Spine1`→`Chest`, `Spine2`→`UpperChest` (jatuh ke `Chest`), `LeftArm`→`LeftUpperArm`, `LeftForeArm`→`LeftLowerArm`, `LeftUpLeg`→`LeftUpperLeg`, `LeftLeg`→`LeftLowerLeg`, `LeftToeBase`→`LeftToes` |
+| keluaran | `clipkit/out/` | `clipkit/out/vrm/` (satu `.res` berlaku untuk 0.x dan 1.0) |
+
+Hal yang perlu diketahui saat menambah karakter:
+- **Urutan bone tidak boleh diasumsikan parent-dulu.** Skeleton VRM hasil impor tidak berurutan seperti itu;
+  `ClipLib.bone_order()` memberi urutan topologis dan dipakai semua evaluasi FK.
+- **Skala posisi.** `"pos_scale": "auto"` menskalakan `hip_x|y|z` dengan tinggi panggul skeleton / `ref_hips_height`
+  (0.9675 m, MotusMan). Root motion (`move`) tidak diskalakan karena dipakai sebagai klaim gameplay dalam meter.
+- **Bone opsional.** `optional_bones` (mis. `UpperChest`, opsional di spesifikasi VRM 1.0) boleh tidak ada; bobot
+  channel dibagikan ulang sehingga total rotasi tetap sama (diuji).
+- Model harus berframe +X kiri, +Y atas, +Z depan; model VRM 0.x dan 1.0 hasil impor addon memenuhinya (diuji).
+- Model VRM 1.0 untuk uji tidak ikut repo: `tests/fetch_vrm1_sample.sh`, lalu `godot --headless --path . --import`.
+
 ## Channel (`rig_motus_man.json`)
 
 Frame model: **+X kiri karakter, +Y atas, +Z depan**. Sumbu didefinisikan di frame model pada pose rest
@@ -105,6 +132,12 @@ kecepatan root motion (terlalu cepat = terasa teleport), penetrasi lantai (sendi
 jendela. Tiga preset gaya: `realistic`, `stylized` (default), `exaggerated`.
 
 ## Batasan yang diketahui
+
+- **VRM 1.0 dan node constraint.** Model sample VRM 1.0 yang dipakai uji (`VRM1_Constraint_Twist_Sample`) punya 14 node
+  constraint (aim/roll) untuk lengan baju dan bahu. Pada render software, lengan baju tampak melebar ke samping
+  walau lengan sudah turun. Gejala yang sama muncul dengan animasi VRM bawaan repo (bukan buatan ClipKit), jadi
+  tampaknya bukan dari rig/klip ClipKit, tetapi penyebab pastinya (addon, model, atau render headless) belum
+  dibuktikan. Rig hanya menganimasikan bone humanoid; constraint ditangani addon.
 
 - Lantai didekati dari tinggi sendi `ToeBase` pada pose rest, bukan telapak sebenarnya.
 - Foot sliding memakai ambang tinggi toe; pada klip lari angkanya bisa terpengaruh ayunan kaki yang melewati ambang.

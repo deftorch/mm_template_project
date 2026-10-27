@@ -16,8 +16,7 @@ extends Node3D
 ##   Beberapa frame sekaligus: --shot=/tmp/slash --times=0,0.1,0.2 (-> slash_0.png, slash_1.png, ...)
 ##   Opsi kamera: --yaw=<derajat> --pitch=<derajat> --dist=<m> --follow --nohud
 
-const CLIP_DIR := "res://clipkit/out/"
-const FBX_PATH := "res://characters/motus_man/MotusMan_v55.fbx"
+const ClipLib := preload("res://clipkit/clip_lib.gd")
 const GRID_TEX := "res://textures/grid_texture.png"
 const LIB_NAME := "clipkit"
 const FPS := 30.0
@@ -26,6 +25,9 @@ const END_HOLD := 0.8  # detik diam di pose akhir sebelum auto-ulang
 var _player: AnimationPlayer
 var _skeleton: Skeleton3D
 var _hips_idx: int = -1
+var _rig: Dictionary = {}
+var CLIP_DIR: String = "res://clipkit/out/"
+var FBX_PATH: String = ""   # scene karakter (FBX/VRM); default dari rig, bisa ditimpa --skeleton=
 var _names: Array[String] = []
 var _current: String = ""
 var _t: float = 0.0
@@ -102,7 +104,28 @@ func _build_world() -> void:
 	add_child(_cam)
 
 
+## --rig=<nama|path> (default motus) dan --skeleton=<res://scene> memilih karakter, mis.
+## --rig=vrm --skeleton=res://testdata/vrm1/model.vrm. Klip dimuat dari out_dir rig.
+func _select_rig() -> void:
+	var rig_name := ""
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--rig="):
+			rig_name = a.substr(6)
+		elif a.begins_with("--skeleton="):
+			FBX_PATH = a.substr(11)
+	_rig = ClipLib.load_rig(ClipLib.rig_path_for(rig_name))
+	if _rig.is_empty():
+		return
+	CLIP_DIR = str(_rig.get("out_dir", "res://clipkit/out/"))
+	if FBX_PATH == "":
+		FBX_PATH = str(_rig["skeleton_scene"])
+
+
 func _load_character() -> bool:
+	_select_rig()
+	if _rig.is_empty():
+		_fatal("Rig tidak terbaca (cek --rig=).")
+		return false
 	var scene: PackedScene = load(FBX_PATH)
 	if scene == null:
 		_fatal("Tidak bisa memuat %s.\nJalankan: godot --headless --path . --import" % FBX_PATH)
@@ -113,11 +136,11 @@ func _load_character() -> bool:
 	var players: Array[Node] = model.find_children("*", "AnimationPlayer", true, false)
 	var skels: Array[Node] = model.find_children("*", "Skeleton3D", true, false)
 	if players.is_empty() or skels.is_empty():
-		_fatal("FBX tidak berisi AnimationPlayer/Skeleton3D.")
+		_fatal("Scene karakter tidak berisi AnimationPlayer/Skeleton3D.")
 		return false
 	_player = players[0] as AnimationPlayer
 	_skeleton = skels[0] as Skeleton3D
-	_hips_idx = _skeleton.find_bone("Hips")
+	_hips_idx = ClipLib.find_bone(_skeleton, _rig, "Hips")
 
 	var lib := AnimationLibrary.new()
 	var dir := DirAccess.open(CLIP_DIR)
@@ -136,7 +159,7 @@ func _load_character() -> bool:
 			_names.append(nm)
 	_names.sort()
 	if _names.is_empty():
-		_fatal("Tidak ada klip di %s.\nJalankan: godot --headless --path . -s tools/clip_build.gd" % CLIP_DIR)
+		_fatal("Tidak ada klip di %s.\nJalankan: godot --headless --path . -s tools/clip_build.gd -- --rig=<rig>" % CLIP_DIR)
 		return false
 	_player.add_animation_library(LIB_NAME, lib)
 	return true
