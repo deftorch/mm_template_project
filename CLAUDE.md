@@ -157,3 +157,13 @@ di VRM 0.x dan `parry` di VRM 1.0: pose terbaca wajar. **Belum dinilai manusia d
 Masalah terbuka: pada model VRM 1.0 sample, lengan baju (bone constraint) tampak melebar saat render software, juga dengan
 animasi VRM bawaan repo; penyebab belum dibuktikan (lihat `clipkit/README.md`, Batasan). Demo di editor (Forward+) belum diuji
 untuk VRM; jalankan `scenes/clipkit_demo.tscn` dengan argumen `--rig=vrm` (mis. lewat `Project > Run Arguments` atau CLI `-- --rig=vrm`).
+
+## 12. Klip pukulan (MotusMan)
+
+Ditambah 6 klip: `jab`, `cross`, `hook`, `uppercut`, `combo_jab_cross_hook`, `guard_idle` (kuda-kuda tinju ortodoks). Semua v1, **belum dirilis** (`clip_release.py release` menunggu penilaian manusia) dan belum dinilai manusia.
+Dibuat lewat `clipkit/gen/` (lihat README di sana): pose dicari numerik terhadap target pergelangan/telapak, kaki di-bake menapak per frame.
+Validator: 9 klip, 0 FAIL, 10 WARN (foot sliding rata-rata 0.09-0.13 m/s pada klip baru; kecepatan siku `jab` 1457 dan kombo 1550 °/s; penetrasi lantai klip baru <=1 cm).
+Temuan: kuda-kuda terlalu panjang membuat kaki belakang lurus penuh dan tak terjangkau saat pinggul naik/berputar (uppercut menembus lantai 7 cm) -> kuda-kuda dipersingkat, lutut ditekuk lebih dalam.
+Interpolasi sudut sendi antar dua pose menapak tidak menjaga telapak di lantai; solusinya bake kaki per frame. Penghalus 3-titik pada hasil bake memperburuk galat di titik balik gerakan (dimatikan).
+Tanda `roll` lengan **berlawanan** antara kiri dan kanan (guard rapat: kiri roll negatif, kanan positif). Tangan masih terbuka (tanpa kepalan).
+Setelah rebase ke Tahap 4 (VRM): `gen/` tetap menghasilkan klip identik dengan `clip_lib.gd` baru; enam klip ikut di-build untuk rig VRM (`clipkit/out/vrm/`, wajib oleh `test_clip_portability.gd`). Validator VRM: 0 FAIL; uji rig VRM 24/24. Pose pukulan **belum dirender dengan mesh VRM** dan VRM 1.0 belum diuji (sampel butuh `tests/fetch_vrm1_sample.sh`). Setelah mengubah klip, bangun ulang kedua rig: `clip_build.gd` dan `clip_build.gd -- --rig=vrm`.
