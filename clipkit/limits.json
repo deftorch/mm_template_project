@@ -1,0 +1,39 @@
+{
+ "styles": {
+  "realistic": {
+   "ang_speed_warn": 720,
+   "ang_speed_fail": 1200,
+   "ang_accel_warn": 60000,
+   "loop_pose_diff_deg": 8,
+   "root_speed_warn": 8,
+   "root_speed_fail": 12
+  },
+  "stylized": {
+   "ang_speed_warn": 1200,
+   "ang_speed_fail": 2000,
+   "ang_accel_warn": 120000,
+   "loop_pose_diff_deg": 10,
+   "root_speed_warn": 10,
+   "root_speed_fail": 15
+  },
+  "exaggerated": {
+   "ang_speed_warn": 1800,
+   "ang_speed_fail": 3000,
+   "ang_accel_warn": 240000,
+   "loop_pose_diff_deg": 15,
+   "root_speed_warn": 14,
+   "root_speed_fail": 22
+  }
+ },
+ "anatomy": {
+  "knee_flex_min": -5,
+  "knee_flex_max": 160,
+  "elbow_flex_max": 165,
+  "neck_bend_max": 70
+ },
+ "floor": {
+  "penetration_fail_m": 0.04,
+  "contact_height_m": 0.03,
+  "slide_warn_ms": 0.25
+ }
+}

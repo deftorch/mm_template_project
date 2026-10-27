@@ -1,0 +1,490 @@
+{
+ "name": "MotusMan_v55",
+ "skeleton_scene": "res://characters/motus_man/MotusMan_v55.fbx",
+ "path_prefix": "Skeleton3D",
+ "frame": "model: +X kiri karakter, +Y atas, +Z depan (diverifikasi oleh tests/test_clip_rig.gd)",
+ "animated_bones": [
+  "Hips",
+  "Spine",
+  "Spine1",
+  "Spine2",
+  "LeftShoulder",
+  "LeftArm",
+  "LeftForeArm",
+  "LeftHand",
+  "RightShoulder",
+  "RightArm",
+  "RightForeArm",
+  "RightHand",
+  "Neck",
+  "Head",
+  "LeftUpLeg",
+  "LeftLeg",
+  "LeftFoot",
+  "LeftToeBase",
+  "RightUpLeg",
+  "RightLeg",
+  "RightFoot",
+  "RightToeBase"
+ ],
+ "channels": {
+  "lean": {
+   "type": "axis",
+   "bones": {
+    "Spine": 0.4,
+    "Spine1": 0.3,
+    "Spine2": 0.3
+   },
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "sign": 1,
+   "default": 0,
+   "range": [
+    -30,
+    60
+   ],
+   "unit": "deg",
+   "desc": "+ = membungkuk ke depan"
+  },
+  "side_lean": {
+   "type": "axis",
+   "bones": {
+    "Spine": 0.4,
+    "Spine1": 0.3,
+    "Spine2": 0.3
+   },
+   "axis": [
+    0,
+    0,
+    1
+   ],
+   "sign": 1,
+   "default": 0,
+   "range": [
+    -35,
+    35
+   ],
+   "unit": "deg",
+   "desc": "+ = miring ke kanan karakter"
+  },
+  "twist": {
+   "type": "axis",
+   "bones": {
+    "Spine": 0.4,
+    "Spine1": 0.3,
+    "Spine2": 0.3
+   },
+   "axis": [
+    0,
+    1,
+    0
+   ],
+   "sign": 1,
+   "default": 0,
+   "range": [
+    -60,
+    60
+   ],
+   "unit": "deg",
+   "desc": "+ = dada berputar ke kiri karakter"
+  },
+  "hip_pitch": {
+   "type": "axis",
+   "bones": {
+    "Hips": 1
+   },
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "sign": 1,
+   "default": 0,
+   "range": [
+    -30,
+    45
+   ],
+   "unit": "deg",
+   "desc": "+ = panggul condong ke depan"
+  },
+  "hip_twist": {
+   "type": "axis",
+   "bones": {
+    "Hips": 1
+   },
+   "axis": [
+    0,
+    1,
+    0
+   ],
+   "sign": 1,
+   "default": 0,
+   "range": [
+    -60,
+    60
+   ],
+   "unit": "deg",
+   "desc": "+ = panggul berputar ke kiri"
+  },
+  "hip_roll": {
+   "type": "axis",
+   "bones": {
+    "Hips": 1
+   },
+   "axis": [
+    0,
+    0,
+    1
+   ],
+   "sign": 1,
+   "default": 0,
+   "range": [
+    -25,
+    25
+   ],
+   "unit": "deg",
+   "desc": "+ = panggul miring ke kanan"
+  },
+  "head_pitch": {
+   "type": "axis",
+   "bones": {
+    "Neck": 0.4,
+    "Head": 0.6
+   },
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "sign": 1,
+   "default": 0,
+   "range": [
+    -40,
+    45
+   ],
+   "unit": "deg",
+   "desc": "+ = kepala menunduk"
+  },
+  "head_yaw": {
+   "type": "axis",
+   "bones": {
+    "Neck": 0.4,
+    "Head": 0.6
+   },
+   "axis": [
+    0,
+    1,
+    0
+   ],
+   "sign": 1,
+   "default": 0,
+   "range": [
+    -70,
+    70
+   ],
+   "unit": "deg",
+   "desc": "+ = menoleh ke kiri"
+  },
+  "legL_swing": {
+   "type": "axis",
+   "bones": {
+    "LeftUpLeg": 1
+   },
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "sign": -1,
+   "default": 0,
+   "range": [
+    -45,
+    120
+   ],
+   "unit": "deg",
+   "desc": "+ = paha terangkat ke depan"
+  },
+  "legL_abd": {
+   "type": "axis",
+   "bones": {
+    "LeftUpLeg": 1
+   },
+   "axis": [
+    0,
+    0,
+    1
+   ],
+   "sign": 1,
+   "default": 0,
+   "range": [
+    -30,
+    60
+   ],
+   "unit": "deg",
+   "desc": "+ = paha membuka ke luar"
+  },
+  "kneeL": {
+   "type": "axis",
+   "bones": {
+    "LeftLeg": 1
+   },
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "sign": 1,
+   "default": 0,
+   "range": [
+    -5,
+    150
+   ],
+   "unit": "deg",
+   "desc": "+ = lutut menekuk"
+  },
+  "footL_pitch": {
+   "type": "axis",
+   "bones": {
+    "LeftFoot": 1
+   },
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "sign": 1,
+   "default": 0,
+   "range": [
+    -45,
+    60
+   ],
+   "unit": "deg",
+   "desc": "+ = ujung kaki turun"
+  },
+  "elbowL": {
+   "type": "axis",
+   "bones": {
+    "LeftForeArm": 1
+   },
+   "axis": [
+    0,
+    1,
+    0
+   ],
+   "sign": -1,
+   "default": 10,
+   "range": [
+    -5,
+    150
+   ],
+   "unit": "deg",
+   "desc": "+ = siku menekuk"
+  },
+  "legR_swing": {
+   "type": "axis",
+   "bones": {
+    "RightUpLeg": 1
+   },
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "sign": -1,
+   "default": 0,
+   "range": [
+    -45,
+    120
+   ],
+   "unit": "deg",
+   "desc": "+ = paha terangkat ke depan"
+  },
+  "legR_abd": {
+   "type": "axis",
+   "bones": {
+    "RightUpLeg": 1
+   },
+   "axis": [
+    0,
+    0,
+    1
+   ],
+   "sign": -1,
+   "default": 0,
+   "range": [
+    -30,
+    60
+   ],
+   "unit": "deg",
+   "desc": "+ = paha membuka ke luar"
+  },
+  "kneeR": {
+   "type": "axis",
+   "bones": {
+    "RightLeg": 1
+   },
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "sign": 1,
+   "default": 0,
+   "range": [
+    -5,
+    150
+   ],
+   "unit": "deg",
+   "desc": "+ = lutut menekuk"
+  },
+  "footR_pitch": {
+   "type": "axis",
+   "bones": {
+    "RightFoot": 1
+   },
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "sign": 1,
+   "default": 0,
+   "range": [
+    -45,
+    60
+   ],
+   "unit": "deg",
+   "desc": "+ = ujung kaki turun"
+  },
+  "elbowR": {
+   "type": "axis",
+   "bones": {
+    "RightForeArm": 1
+   },
+   "axis": [
+    0,
+    1,
+    0
+   ],
+   "sign": 1,
+   "default": 10,
+   "range": [
+    -5,
+    150
+   ],
+   "unit": "deg",
+   "desc": "+ = siku menekuk"
+  },
+  "hip_x": {
+   "type": "pos",
+   "bone": "Hips",
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "default": 0,
+   "range": [
+    -1.5,
+    1.5
+   ],
+   "unit": "m",
+   "desc": "offset posisi panggul (frame model: X kiri, Y atas, Z depan)"
+  },
+  "hip_y": {
+   "type": "pos",
+   "bone": "Hips",
+   "axis": [
+    0,
+    1,
+    0
+   ],
+   "default": 0,
+   "range": [
+    -0.6,
+    0.5
+   ],
+   "unit": "m",
+   "desc": "offset posisi panggul (frame model: X kiri, Y atas, Z depan)"
+  },
+  "hip_z": {
+   "type": "pos",
+   "bone": "Hips",
+   "axis": [
+    0,
+    0,
+    1
+   ],
+   "default": 0,
+   "range": [
+    -1.5,
+    1.5
+   ],
+   "unit": "m",
+   "desc": "offset posisi panggul (frame model: X kiri, Y atas, Z depan)"
+  }
+ },
+ "aims": {
+  "armL": {
+   "bone": "LeftArm",
+   "child": "LeftForeArm",
+   "lateral": [
+    1,
+    0,
+    0
+   ],
+   "default": {
+    "elev": -75,
+    "azim": 0,
+    "roll": 0
+   },
+   "range": {
+    "elev": [
+     -95,
+     175
+    ],
+    "azim": [
+     -100,
+     140
+    ],
+    "roll": [
+     -120,
+     120
+    ]
+   },
+   "desc": "elev: sudut di atas horizontal (-90 = tergantung); azim: 0 = ke samping, 90 = ke depan; roll: putar sekitar lengan"
+  },
+  "armR": {
+   "bone": "RightArm",
+   "child": "RightForeArm",
+   "lateral": [
+    -1,
+    0,
+    0
+   ],
+   "default": {
+    "elev": -75,
+    "azim": 0,
+    "roll": 0
+   },
+   "range": {
+    "elev": [
+     -95,
+     175
+    ],
+    "azim": [
+     -100,
+     140
+    ],
+    "roll": [
+     -120,
+     120
+    ]
+   },
+   "desc": "elev: sudut di atas horizontal (-90 = tergantung); azim: 0 = ke samping, 90 = ke depan; roll: putar sekitar lengan"
+  }
+ }
+}
