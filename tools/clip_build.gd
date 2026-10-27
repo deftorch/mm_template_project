@@ -34,7 +34,16 @@ func _initialize() -> void:
 			continue
 		if only != "" and clip["name"] != only:
 			continue
+		if int(clip.get("format_version", 1)) > ClipLib.FORMAT_VERSION:
+			printerr("GAGAL  %s: format_version %d lebih baru dari yang didukung (%d); perbarui clip_lib.gd" % [clip["name"], int(clip["format_version"]), ClipLib.FORMAT_VERSION])
+			failed += 1
+			continue
 		var warns := ClipLib.check_channel_ranges(rig, clip)
+		if not clip.has("format_version"):
+			warns.append("format_version belum ada, dianggap %d" % ClipLib.FORMAT_VERSION)
+		for vi in ClipLib.version_issues(clip.get("version", 1), clip.get("changelog", null), clip.get("format_version", 1)):
+			if vi[0] != "PASS":
+				warns.append(str(vi[1]))
 		var anim := ClipLib.build_animation(sk, rig, ctx, clip)
 		var save_path: String = OUT_DIR + str(clip["name"]) + ".res"
 		if ResourceSaver.save(anim, save_path) != OK:

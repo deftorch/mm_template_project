@@ -1,6 +1,17 @@
 {
  "name": "slash",
+ "format_version": 1,
  "version": 2,
+ "changelog": [
+  {
+   "v": 1,
+   "catatan": "Versi awal; isinya tidak tercatat. CLAUDE.md §6 mencatat slash sempat menembus lantai 4.9 cm dan hanya berupa gerakan lengan, tidak diketahui di versi mana."
+  },
+  {
+   "v": 2,
+   "catatan": "Lunge dengan tumpuan; render mesh: ancang-ancang ke belakang, ayunan, lalu kembali. Tanpa senjata, jadi arti ayunan baru terbaca dari lengan (CLAUDE.md §7)."
+  }
+ ],
  "group": "combat",
  "tags": [
   "attack",

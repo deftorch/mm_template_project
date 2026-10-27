@@ -1,0 +1,513 @@
+{
+ "name": "dodge",
+ "format_version": 1,
+ "version": 2,
+ "changelog": [
+  {
+   "v": 1,
+   "catatan": "Versi awal; isinya tidak tercatat. CLAUDE.md §6 mencatat dodge sempat berkecepatan root 21 m/s (terbaca teleport), tidak diketahui di versi mana."
+  },
+  {
+   "v": 2,
+   "catatan": "Lompat mundur 2.5 m: root motion linear 0.18-0.50 s, inv 0.10-0.45 s. Render mesh: jongkok, lompat (lutut ditekuk), mendarat terbaca wajar (CLAUDE.md §7)."
+  }
+ ],
+ "group": "locomotion",
+ "tags": [
+  "defense",
+  "i-frame",
+  "placeholder-pose"
+ ],
+ "duration": 0.8,
+ "loop": false,
+ "channels": {
+  "hip_y": [
+   [
+    0,
+    0
+   ],
+   [
+    0.12,
+    -0.108,
+    "outQuad"
+   ],
+   [
+    0.18,
+    -0.008,
+    "outQuad"
+   ],
+   [
+    0.34,
+    0.16,
+    "outQuad"
+   ],
+   [
+    0.5,
+    -0.008,
+    "inQuad"
+   ],
+   [
+    0.6,
+    -0.108,
+    "outQuad"
+   ],
+   [
+    0.8,
+    0,
+    "inOutSine"
+   ]
+  ],
+  "hip_z": [
+   [
+    0,
+    0
+   ],
+   [
+    0.12,
+    -0.107,
+    "outQuad"
+   ],
+   [
+    0.18,
+    -0.039,
+    "outQuad"
+   ],
+   [
+    0.34,
+    -0.2,
+    "outQuad"
+   ],
+   [
+    0.5,
+    -0.039,
+    "inQuad"
+   ],
+   [
+    0.6,
+    -0.107,
+    "outQuad"
+   ],
+   [
+    0.8,
+    0,
+    "inOutSine"
+   ]
+  ],
+  "lean": [
+   [
+    0,
+    0
+   ],
+   [
+    0.12,
+    25,
+    "outQuad"
+   ],
+   [
+    0.34,
+    10,
+    "inOutSine"
+   ],
+   [
+    0.6,
+    25,
+    "outQuad"
+   ],
+   [
+    0.8,
+    0,
+    "outBack"
+   ]
+  ],
+  "armL_elev": [
+   [
+    0,
+    -75
+   ],
+   [
+    0.12,
+    -60,
+    "outQuad"
+   ],
+   [
+    0.34,
+    -25,
+    "outQuad"
+   ],
+   [
+    0.6,
+    -60,
+    "inOutSine"
+   ],
+   [
+    0.8,
+    -75,
+    "inOutSine"
+   ]
+  ],
+  "armR_elev": [
+   [
+    0,
+    -75
+   ],
+   [
+    0.12,
+    -60,
+    "outQuad"
+   ],
+   [
+    0.34,
+    -25,
+    "outQuad"
+   ],
+   [
+    0.6,
+    -60,
+    "inOutSine"
+   ],
+   [
+    0.8,
+    -75,
+    "inOutSine"
+   ]
+  ],
+  "armL_azim": [
+   [
+    0,
+    0
+   ],
+   [
+    0.12,
+    -35,
+    "outQuad"
+   ],
+   [
+    0.34,
+    35,
+    "outQuad"
+   ],
+   [
+    0.6,
+    -30,
+    "inOutSine"
+   ],
+   [
+    0.8,
+    0,
+    "inOutSine"
+   ]
+  ],
+  "armR_azim": [
+   [
+    0,
+    0
+   ],
+   [
+    0.12,
+    -35,
+    "outQuad"
+   ],
+   [
+    0.34,
+    35,
+    "outQuad"
+   ],
+   [
+    0.6,
+    -30,
+    "inOutSine"
+   ],
+   [
+    0.8,
+    0,
+    "inOutSine"
+   ]
+  ],
+  "elbowL": [
+   [
+    0,
+    10
+   ],
+   [
+    0.34,
+    50,
+    "outQuad"
+   ],
+   [
+    0.8,
+    10,
+    "inOutSine"
+   ]
+  ],
+  "elbowR": [
+   [
+    0,
+    10
+   ],
+   [
+    0.34,
+    50,
+    "outQuad"
+   ],
+   [
+    0.8,
+    10,
+    "inOutSine"
+   ]
+  ],
+  "legL_swing": [
+   [
+    0,
+    0
+   ],
+   [
+    0.12,
+    35,
+    "outQuad"
+   ],
+   [
+    0.18,
+    10,
+    "outQuad"
+   ],
+   [
+    0.34,
+    50,
+    "outQuad"
+   ],
+   [
+    0.5,
+    10,
+    "inQuad"
+   ],
+   [
+    0.6,
+    35,
+    "outQuad"
+   ],
+   [
+    0.8,
+    0,
+    "inOutSine"
+   ]
+  ],
+  "legR_swing": [
+   [
+    0,
+    0
+   ],
+   [
+    0.12,
+    35,
+    "outQuad"
+   ],
+   [
+    0.18,
+    10,
+    "outQuad"
+   ],
+   [
+    0.34,
+    50,
+    "outQuad"
+   ],
+   [
+    0.5,
+    10,
+    "inQuad"
+   ],
+   [
+    0.6,
+    35,
+    "outQuad"
+   ],
+   [
+    0.8,
+    0,
+    "inOutSine"
+   ]
+  ],
+  "kneeL": [
+   [
+    0,
+    3
+   ],
+   [
+    0.12,
+    55,
+    "outQuad"
+   ],
+   [
+    0.18,
+    15,
+    "outQuad"
+   ],
+   [
+    0.34,
+    90,
+    "outQuad"
+   ],
+   [
+    0.5,
+    15,
+    "inQuad"
+   ],
+   [
+    0.6,
+    55,
+    "outQuad"
+   ],
+   [
+    0.8,
+    3,
+    "inOutSine"
+   ]
+  ],
+  "kneeR": [
+   [
+    0,
+    3
+   ],
+   [
+    0.12,
+    55,
+    "outQuad"
+   ],
+   [
+    0.18,
+    15,
+    "outQuad"
+   ],
+   [
+    0.34,
+    90,
+    "outQuad"
+   ],
+   [
+    0.5,
+    15,
+    "inQuad"
+   ],
+   [
+    0.6,
+    55,
+    "outQuad"
+   ],
+   [
+    0.8,
+    3,
+    "inOutSine"
+   ]
+  ],
+  "footL_pitch": [
+   [
+    0,
+    0
+   ],
+   [
+    0.12,
+    -20,
+    "outQuad"
+   ],
+   [
+    0.18,
+    -5,
+    "outQuad"
+   ],
+   [
+    0.34,
+    20,
+    "outQuad"
+   ],
+   [
+    0.5,
+    -5,
+    "inQuad"
+   ],
+   [
+    0.6,
+    -20,
+    "outQuad"
+   ],
+   [
+    0.8,
+    0,
+    "inOutSine"
+   ]
+  ],
+  "footR_pitch": [
+   [
+    0,
+    0
+   ],
+   [
+    0.12,
+    -20,
+    "outQuad"
+   ],
+   [
+    0.18,
+    -5,
+    "outQuad"
+   ],
+   [
+    0.34,
+    20,
+    "outQuad"
+   ],
+   [
+    0.5,
+    -5,
+    "inQuad"
+   ],
+   [
+    0.6,
+    -20,
+    "outQuad"
+   ],
+   [
+    0.8,
+    0,
+    "inOutSine"
+   ]
+  ]
+ },
+ "move": {
+  "dir": [
+   0,
+   0,
+   -1
+  ],
+  "distance": 2.5,
+  "t0": 0.18,
+  "t1": 0.5,
+  "ease": "linear"
+ },
+ "windows": {
+  "inv": [
+   0.1,
+   0.45
+  ],
+  "cancel": [
+   0.6,
+   0.8
+  ]
+ },
+ "events": [
+  {
+   "t": 0.18,
+   "type": "sfx",
+   "id": "whoosh"
+  },
+  {
+   "t": 0.5,
+   "type": "vfx",
+   "id": "dust"
+  }
+ ],
+ "claims": {
+  "distance": 2.5,
+  "tolerance": 0.1,
+  "duration": 0.8
+ }
+}

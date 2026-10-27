@@ -40,11 +40,38 @@ lintasan dunia tangan/kaki/kepala, grafik kecepatan titik, dan timeline jendela 
 Ini boneka garis: cukup untuk menilai timing, keseimbangan, tumpuan kaki, kekakuan, dan lonjakan kecepatan,
 tidak cukup untuk menilai bobot, gaya, atau kehalusan. Butuh matplotlib + numpy.
 
+## Versi dan riwayat
+
+Tiga hal berbeda, jangan dicampur:
+
+- `format_version`: versi **skema** JSON. Naik hanya jika format berubah tidak kompatibel. Konstanta pasangannya: `FORMAT_VERSION` di `clip_lib.gd` dan di `clipver.py` (harus sama).
+- `version` + `changelog`: versi **isi klip**. Naikkan `version` dan tambah satu entri `changelog` setiap kali `duration`, `loop`, `channels`, `move`, `windows`, `events`, `claims`, atau `validate` berubah. Perubahan `tags`, `group`, atau teks changelog saja tidak perlu menaikkan versi.
+- `history/<nama>/v<N>.json`: snapshot klip saat versi N dirilis. Tidak pernah ditimpa. Riwayat sebelum snapshot pertama tidak tersedia (di changelog ditandai "tidak tersimpan").
+
+```bash
+python3 clipkit/clip_release.py check [nama...]        # format_version, changelog, kesesuaian dengan snapshot (exit 1 jika FAIL)
+python3 clipkit/clip_release.py release nama [...]     # simpan snapshot versi saat ini (menolak jika ada FAIL; --dry-run tersedia)
+python3 clipkit/clip_release.py list [nama...]         # versi, changelog, dan snapshot yang tersimpan
+python3 clipkit/clip_diff.py parry@3 parry@4           # bandingkan dua snapshot; 'parry' = klip kerja; file .json juga boleh
+python3 tests/test_clip_history.py                     # uji bagian Python
+```
+
+Alur mengubah klip: edit JSON -> naikkan `version` dan tambah entri `changelog` -> `clip_release.py check` (FAIL jika isi berubah
+tanpa menaikkan versi) -> `clip_build.gd` -> `clip_validate.gd` -> `clip_release.py release <nama>` jika hasilnya diterima.
+`clip_diff.py` menandai dengan `!` perubahan yang memengaruhi gameplay (durasi, loop, move, jendela, event) dan melaporkan selisih
+maksimum tiap channel pada kurva 30 fps; easing-nya sama dengan `ClipLib.sample_keys` (dicocokkan dengan GDScript, lihat catatan di CLAUDE.md).
+
+`clip_build.gd` menyalin `clip_version`, `format_version`, dan `changelog` ke metadata `Animation`; `clip_validate.gd` memeriksa
+konsistensinya (FAIL jika changelog tidak cocok dengan versi, WARN jika tanpa changelog). Klip `.res` lain (mis. hasil retarget Motorica) tidak punya
+metadata ini, jadi pemeriksaan itu dilewati.
+
 ## Format klip (`clips/*.json`)
 
 | Field | Arti |
 |---|---|
-| `name`, `version`, `group`, `tags` | metadata |
+| `name`, `group`, `tags` | metadata |
+| `format_version` | versi skema JSON (saat ini 1). Klip dengan format lebih baru dari yang dipahami `clip_lib.gd` ditolak saat build; tanpa field ini dianggap 1 |
+| `version`, `changelog` | versi klip (bilangan bulat) dan catatan per versi `[{v, catatan}, ...]`, berurutan 1..N, entri terakhir = `version`. Lihat bagian Versi dan riwayat |
 | `duration` (detik), `loop` | durasi, apakah loop |
 | `channels` | `{nama: [[waktu, nilai, easing], ...]}`. Easing sebuah key dipakai untuk segmen yang MENUJU key itu |
 | `move` | root motion: `{dir:[x,y,z], distance, t0, t1, ease}` (objek atau daftar segmen) |
@@ -84,3 +111,4 @@ jendela. Tiga preset gaya: `realistic`, `stylized` (default), `exaggerated`.
   Perlakukan sebagai petunjuk, bukan vonis.
 - Lengan memakai arah (aim) tanpa roll otomatis: atur `roll` agar siku menekuk ke bidang yang diinginkan.
 - Belum ada: key berbasis tujuan (IK), layer aditif, mirror, bake motion matching.
+- Versioning: snapshot hanya mulai dari versi yang dirilis pertama kali (dodge v2, slash v2, parry v3); v1 dan parry v2 tidak tersimpan. Tidak ada migrasi otomatis antar `format_version` (baru ada format 1). Snapshot tidak dilindungi dari penyuntingan manual selain lewat Git; `check` hanya mendeteksi kalau isi klip kerja menyimpang dari snapshot versi yang sama. Diff membandingkan data klip, bukan hasil gerak (pose dunia) setelah build.

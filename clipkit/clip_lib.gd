@@ -14,6 +14,9 @@ extends RefCounted
 const FPS := 30.0
 const RIG_PATH := "res://clipkit/rig_motus_man.json"
 const FORWARD := Vector3(0, 0, 1)
+## Versi skema JSON klip yang dipahami library ini. Samakan dengan FORMAT_VERSION di clipkit/clipver.py.
+## Naikkan hanya jika skema berubah tidak kompatibel; klip tanpa field format_version dianggap format 1.
+const FORMAT_VERSION := 1
 
 
 static func read_json(path: String) -> Variant:
@@ -264,11 +267,41 @@ static func build_animation(sk: Skeleton3D, rig: Dictionary, ctx: Dictionary, cl
 	# jendela gameplay, event, klaim: disimpan sebagai metadata Animation
 	out.set_meta("clip_name", clip.get("name", ""))
 	out.set_meta("clip_version", clip.get("version", 1))
+	out.set_meta("format_version", clip.get("format_version", 1))
+	out.set_meta("changelog", clip.get("changelog", []))
 	out.set_meta("tags", clip.get("tags", []))
 	out.set_meta("windows", clip.get("windows", {}))
 	out.set_meta("events", clip.get("events", []))
 	out.set_meta("claims", clip.get("claims", {}))
 	out.set_meta("validate", clip.get("validate", {}))
+	return out
+
+
+## Periksa versi, format, dan changelog (dari JSON klip atau metadata Animation).
+## Return Array [[sev, teks], ...] dengan sev "PASS"/"WARN"/"FAIL". Angka dari JSON bertipe float,
+## jadi dibandingkan lewat int().
+static func version_issues(version: Variant, changelog: Variant, format_version: Variant = 1) -> Array:
+	var out: Array = []
+	var ver := int(version)
+	var fv := int(format_version)
+	if fv > FORMAT_VERSION:
+		out.append(["FAIL", "format_version %d lebih baru dari yang didukung library (%d)" % [fv, FORMAT_VERSION]])
+	if not (changelog is Array) or (changelog as Array).is_empty():
+		out.append(["WARN", "v%d tanpa changelog" % ver])
+		return out
+	var cl: Array = changelog
+	var ok := true
+	for i in cl.size():
+		var e: Variant = cl[i]
+		if not (e is Dictionary) or int(e.get("v", -1)) != i + 1 or str(e.get("catatan", "")).strip_edges() == "":
+			ok = false
+			break
+	if not ok:
+		out.append(["FAIL", "changelog tidak valid (harus berurutan v1..vN, tiap entri punya catatan)"])
+	elif int((cl[cl.size() - 1] as Dictionary)["v"]) != ver:
+		out.append(["FAIL", "version %d tetapi changelog berakhir di v%d" % [ver, int((cl[cl.size() - 1] as Dictionary)["v"])]])
+	else:
+		out.append(["PASS", "versi v%d, format %d, changelog %d entri konsisten" % [ver, fv, cl.size()]])
 	return out
 
 

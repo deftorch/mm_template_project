@@ -15,7 +15,8 @@ Penilaian "enak dilihat" tetap oleh manusia. Rancangan lengkap: `docs/design-doc
 - Karakter: **MotusMan** (`characters/motus_man/`, 252 klip `.res` di `animations/`) dan VRM (`animation/three-vrm-girl`).
 - `tools/retarget_motorica_to_motus.gd`: retarget Motorica FBX ke MotusMan (rumus world-space delta; header skripnya menjelaskan bug rest-frame yang diperbaiki).
 - `tests/`: ±28 skrip uji kecil lama (retarget, kecepatan klip, dll.).
-- **Semua pekerjaan baru belum di-commit** (`git status` menampilkan `clipkit/`, `tools/clip_*.gd`, `tests/test_clip_rig.gd`, `docs/`, `CLAUDE.md` sebagai untracked). Tidak ada akses push dari sandbox.
+- Status git: pekerjaan clipkit tahap 1-3 + demo masuk sebagai **satu commit** `a6d2c0d` (27 Okt 2026). Repo hanya punya 3 commit, jadi riwayat v1/v2 klip sebelum itu tidak ada di git. Pekerjaan versioning (bagian 3, baris `clipver.py` dst.) ada di commit sesudahnya. Tidak ada akses push dari sandbox.
+- Catatan: `clipkit/out/` dan `clipkit/preview/` ikut ter-commit di `a6d2c0d` walau di bagian 10 dianggap artefak. Setelah mengubah klip, `out/*.res` perlu dibangun ulang agar sinkron dengan JSON.
 
 ## 3. Yang sudah dibangun (Tahap 1 + 2 + Tahap 3 + demo editor)
 
@@ -35,6 +36,11 @@ Penilaian "enak dilihat" tetap oleh manusia. Rancangan lengkap: `docs/design-doc
 | `scenes/clipkit_demo.tscn` + `scripts/clipkit_demo.gd` | **Demo di editor**: memuat MotusMan asli, memutar klip `clipkit/out/*.res`, HUD jendela gameplay, jeda/langkah per frame, kamera orbit. Juga mode tangkapan layar (`--shot`) |
 | `clipkit/render_sheet.py` | Contact sheet dengan **mesh asli** (Xvfb + Mesa llvmpipe, tanpa GPU) → `clipkit/preview/<klip>.mesh.png` |
 | `tests/test_clipkit_demo.gd` | 12 uji jalur input demo (pilih klip, jeda, langkah, kecepatan, pose berubah) |
+| `clipkit/clipver.py` | Pustaka versioning (Python murni): aturan versi/changelog/snapshot, `check_clip`, `release`, `resolve` |
+| `clipkit/clip_release.py` | CLI `check` / `release` / `list` |
+| `clipkit/clip_diff.py` | Diff numerik dua versi klip (jendela, event, move, klaim, selisih kurva per channel) |
+| `clipkit/history/<klip>/v<N>.json` | Snapshot tidak berubah per versi yang dirilis (dodge v2, slash v2, parry v3) |
+| `tests/test_clip_history.py` | 28 uji bagian Python versioning (`python3 tests/test_clip_history.py`) |
 
 ## 4. Cara menjalankan (lingkungan sandbox Linux)
 
@@ -56,6 +62,9 @@ $G -s tools/clip_validate.gd                       # validasi (-- --style=realis
 $G -s tools/clip_export_pose.gd                    # out/*.res -> clipkit/preview/*.pose.json
 python3 clipkit/preview.py clipkit/preview/slash.pose.json --frames 10   # -> .contact.png (butuh matplotlib, numpy)
 $G -s tests/test_clip_rig.gd                       # uji tanda channel
+python3 clipkit/clip_release.py check              # versi + changelog + snapshot (tanpa Godot)
+python3 clipkit/clip_diff.py parry@3 parry         # diff snapshot vs klip kerja (tanpa Godot)
+python3 tests/test_clip_history.py                 # uji Python versioning
 ```
 Output Godot berisi banyak peringatan "leaked RID/ObjectDB" saat keluar; abaikan dengan
 `2>&1 | grep -v -i 'leaked\|RID \|ObjectDB\|  at: \|PagedAlloc\|resources still\|Godot Engine'`.
@@ -101,6 +110,7 @@ Eksperimen `roll` lengan kanan (render mesh, t=0.24 s): roll 0 = lengan bawah me
 - Demo diuji dengan renderer `gl_compatibility` dan headless; **Forward+ (renderer proyek) belum diuji**.
 - Lantai didekati dari sendi `ToeBase`, bukan telapak. Foot sliding memakai ambang tinggi toe, jadi bisa terpengaruh ayunan kaki; perlakukan sebagai petunjuk.
 - Lengan memakai arah tanpa roll otomatis: siku bisa menekuk ke bidang yang janggal (mis. `parry`, lengan kanan melipat ke arah kepala). Atur `roll`.
+- Versioning: snapshot baru ada dari dodge v2, slash v2, parry v3 (v1 dan parry v2 hilang; changelog-nya hanya berisi apa yang tercatat di dokumen ini, ditandai "tidak tercatat"). Tanggal tidak dicatat di changelog karena tidak diketahui untuk versi lama. Easing di `clip_diff.py` dicocokkan dengan GDScript (13 easing x 101 titik, selisih maks 5e-16; 4459 sampel kurva klip nyata, selisih maks 5e-14), tetapi diff membandingkan data klip, bukan pose dunia hasil build.
 - Belum ada: rig ke karakter kedua (VRM), `bake` motion matching otomatis, key berbasis tujuan (IK), layer aditif, mirror, secondary motion, integrasi klip ke `AnimationLibrary`/`AnimationTree`, tes regresi/CI.
 - Tidak ada klaim kualitas animasi. Jangan menulis bahwa gerakan "terlihat bagus" tanpa masukan visual manusia.
 
@@ -119,5 +129,6 @@ Eksperimen `roll` lengan kanan (render mesh, t=0.24 s): roll 0 = lengan bawah me
 - Pakai `preload("res://clipkit/clip_lib.gd")` (bukan `class_name`) agar tidak bergantung pada cache kelas global.
 - GDScript: nilai dari `Dictionary`/JSON bertipe Variant; jangan memakai `var x := <ekspresi Variant>` (error "cannot infer type"), beri tipe eksplisit.
 - Komentar dan pesan dalam Bahasa Indonesia, sesuai gaya repo.
-- Setiap perubahan klip: build → validate (exit 0, tanpa FAIL) → export → preview → lihat gambar.
+- Setiap perubahan klip: naikkan `version` + tambah entri `changelog` (jika isi berubah) → `clip_release.py check` → build → validate (exit 0, tanpa FAIL) → export → preview → lihat gambar → `clip_release.py release <nama>` jika diterima.
+- `FORMAT_VERSION` ada di dua tempat (`clip_lib.gd` dan `clipver.py`); ubah keduanya bersamaan. Port easing di `clip_diff.py` harus tetap sama dengan `ClipLib.ease_fn`.
 - Jangan commit artefak sementara; `clipkit/out/` dan `clipkit/preview/` adalah hasil regenerasi.

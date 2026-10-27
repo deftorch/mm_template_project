@@ -1,6 +1,17 @@
 {
  "name": "dodge",
+ "format_version": 1,
  "version": 2,
+ "changelog": [
+  {
+   "v": 1,
+   "catatan": "Versi awal; isinya tidak tercatat. CLAUDE.md §6 mencatat dodge sempat berkecepatan root 21 m/s (terbaca teleport), tidak diketahui di versi mana."
+  },
+  {
+   "v": 2,
+   "catatan": "Lompat mundur 2.5 m: root motion linear 0.18-0.50 s, inv 0.10-0.45 s. Render mesh: jongkok, lompat (lutut ditekuk), mendarat terbaca wajar (CLAUDE.md §7)."
+  }
+ ],
  "group": "locomotion",
  "tags": [
   "defense",

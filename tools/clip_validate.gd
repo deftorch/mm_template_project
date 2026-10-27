@@ -275,6 +275,11 @@ func _validate(path: String, anim: Animation) -> void:
 		if te < 0.0 or te > anim.length + 1e-4:
 			lines.append(["FAIL", "event %s di t=%.2f di luar durasi" % [ev.get("id", "?"), te]])
 
+	# 7. versi dan changelog (hanya untuk klip hasil clipkit; .res lain tidak punya metadata ini)
+	if anim.has_meta("clip_version"):
+		for vi in ClipLib.version_issues(anim.get_meta("clip_version"), anim.get_meta("changelog", []), anim.get_meta("format_version", 1)):
+			lines.append([vi[0], vi[1]])
+
 	# cetak
 	var nf := 0
 	var nw := 0

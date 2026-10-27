@@ -1,0 +1,351 @@
+{
+ "name": "parry",
+ "format_version": 1,
+ "version": 3,
+ "changelog": [
+  {
+   "v": 1,
+   "catatan": "Versi awal; isinya tidak tercatat. CLAUDE.md §6 mencatat parry sempat berkecepatan tangan 3107 °/s, tidak diketahui di versi mana."
+  },
+  {
+   "v": 2,
+   "catatan": "Isi terperinci tidak tercatat. Render mesh menunjukkan lengan kanan melipat siku ke samping kepala (CLAUDE.md §7)."
+  },
+  {
+   "v": 3,
+   "catatan": "Lengan kanan diperbaiki: elev -10, azim 55, siku 95, roll 0 (default) selama jendela parry, jadi blok silang di depan dada. Pose masih kaku: lengan kiri juga lurus ke depan (CLAUDE.md §7)."
+  }
+ ],
+ "group": "combat",
+ "tags": [
+  "defense",
+  "parry",
+  "placeholder-pose"
+ ],
+ "duration": 0.6,
+ "loop": false,
+ "channels": {
+  "lean": [
+   [
+    0,
+    0
+   ],
+   [
+    0.04,
+    3,
+    "outQuad"
+   ],
+   [
+    0.16,
+    -10,
+    "outQuad"
+   ],
+   [
+    0.34,
+    -6,
+    "inOutSine"
+   ],
+   [
+    0.6,
+    0,
+    "inOutSine"
+   ]
+  ],
+  "twist": [
+   [
+    0,
+    0
+   ],
+   [
+    0.16,
+    15,
+    "outQuad"
+   ],
+   [
+    0.34,
+    5,
+    "inOutSine"
+   ],
+   [
+    0.6,
+    0,
+    "inOutSine"
+   ]
+  ],
+  "armR_elev": [
+   [
+    0,
+    -75
+   ],
+   [
+    0.04,
+    -85,
+    "outQuad"
+   ],
+   [
+    0.16,
+    -10,
+    "outQuad"
+   ],
+   [
+    0.34,
+    -10,
+    "inOutSine"
+   ],
+   [
+    0.6,
+    -75,
+    "inOutSine"
+   ]
+  ],
+  "armR_azim": [
+   [
+    0,
+    0
+   ],
+   [
+    0.04,
+    -10,
+    "outQuad"
+   ],
+   [
+    0.16,
+    55,
+    "outQuad"
+   ],
+   [
+    0.34,
+    55,
+    "inOutSine"
+   ],
+   [
+    0.6,
+    0,
+    "inOutSine"
+   ]
+  ],
+  "elbowR": [
+   [
+    0,
+    10
+   ],
+   [
+    0.04,
+    10,
+    "outQuad"
+   ],
+   [
+    0.16,
+    95,
+    "outQuad"
+   ],
+   [
+    0.34,
+    95,
+    "inOutSine"
+   ],
+   [
+    0.6,
+    10,
+    "inOutSine"
+   ]
+  ],
+  "armL_elev": [
+   [
+    0,
+    -75
+   ],
+   [
+    0.16,
+    -20,
+    "outQuad"
+   ],
+   [
+    0.6,
+    -75,
+    "inOutSine"
+   ]
+  ],
+  "armL_azim": [
+   [
+    0,
+    0
+   ],
+   [
+    0.16,
+    50,
+    "outQuad"
+   ],
+   [
+    0.6,
+    0,
+    "inOutSine"
+   ]
+  ],
+  "elbowL": [
+   [
+    0,
+    10
+   ],
+   [
+    0.16,
+    80,
+    "outQuad"
+   ],
+   [
+    0.6,
+    10,
+    "inOutSine"
+   ]
+  ],
+  "hip_y": [
+   [
+    0,
+    0
+   ],
+   [
+    0.16,
+    -0.039,
+    "outQuad"
+   ],
+   [
+    0.6,
+    0,
+    "inOutSine"
+   ]
+  ],
+  "hip_z": [
+   [
+    0,
+    0
+   ],
+   [
+    0.16,
+    -0.042,
+    "outQuad"
+   ],
+   [
+    0.6,
+    0,
+    "inOutSine"
+   ]
+  ],
+  "legL_swing": [
+   [
+    0,
+    0
+   ],
+   [
+    0.16,
+    20,
+    "outQuad"
+   ],
+   [
+    0.6,
+    0,
+    "inOutSine"
+   ]
+  ],
+  "legR_swing": [
+   [
+    0,
+    0
+   ],
+   [
+    0.16,
+    20,
+    "outQuad"
+   ],
+   [
+    0.6,
+    0,
+    "inOutSine"
+   ]
+  ],
+  "kneeL": [
+   [
+    0,
+    3
+   ],
+   [
+    0.16,
+    35,
+    "outQuad"
+   ],
+   [
+    0.6,
+    3,
+    "inOutSine"
+   ]
+  ],
+  "kneeR": [
+   [
+    0,
+    3
+   ],
+   [
+    0.16,
+    35,
+    "outQuad"
+   ],
+   [
+    0.6,
+    3,
+    "inOutSine"
+   ]
+  ],
+  "footL_pitch": [
+   [
+    0,
+    0
+   ],
+   [
+    0.16,
+    -15,
+    "outQuad"
+   ],
+   [
+    0.6,
+    0,
+    "inOutSine"
+   ]
+  ],
+  "footR_pitch": [
+   [
+    0,
+    0
+   ],
+   [
+    0.16,
+    -15,
+    "outQuad"
+   ],
+   [
+    0.6,
+    0,
+    "inOutSine"
+   ]
+  ]
+ },
+ "windows": {
+  "parry": [
+   0.16,
+   0.32
+  ],
+  "cancel": [
+   0.42,
+   0.6
+  ]
+ },
+ "events": [
+  {
+   "t": 0.16,
+   "type": "sfx",
+   "id": "clang_ready"
+  }
+ ],
+ "claims": {
+  "duration": 0.6,
+  "tolerance": 0.1
+ }
+}

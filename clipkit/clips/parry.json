@@ -1,6 +1,21 @@
 {
  "name": "parry",
+ "format_version": 1,
  "version": 3,
+ "changelog": [
+  {
+   "v": 1,
+   "catatan": "Versi awal; isinya tidak tercatat. CLAUDE.md §6 mencatat parry sempat berkecepatan tangan 3107 °/s, tidak diketahui di versi mana."
+  },
+  {
+   "v": 2,
+   "catatan": "Isi terperinci tidak tercatat. Render mesh menunjukkan lengan kanan melipat siku ke samping kepala (CLAUDE.md §7)."
+  },
+  {
+   "v": 3,
+   "catatan": "Lengan kanan diperbaiki: elev -10, azim 55, siku 95, roll 0 (default) selama jendela parry, jadi blok silang di depan dada. Pose masih kaku: lengan kiri juga lurus ke depan (CLAUDE.md §7)."
+  }
+ ],
  "group": "combat",
  "tags": [
   "defense",
